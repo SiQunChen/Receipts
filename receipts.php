@@ -39,61 +39,84 @@
                         <h2>Receipts</h2>
                     </div>
 
-                    <form method="POST" ACTION="receipts.php" role="form">
+                    <form method="POST" action="receipts.php" role="form">
+                        <!-- 共用欄位: Case Number、Match/Like、Invoice、is_paid -->
                         <div class="form-group">
                             <label class="col-half">Case Number</label>
                             <input type="text" class="col-half" name="case_number">
                         </div>
-
                         <div class="form-group">
-                            <label class="col-half">Match</label>
-                            <input type="radio" name="match_or_like" id="match" value="match" checked>
+                            <label class="col-half" style="width: 100%;">
+                                <input type="radio" name="match_or_like" id="match" value="match" checked>
+                                <label for="match" style="margin-right: 13px;">Match</label>
 
-                            <label class="col-half">Like</label>
-                            <input type="radio" name="match_or_like" id="like" value="like">
+                                <input type="radio" name="match_or_like" id="like" value="like">
+                                <label for="like">Like</label>
+                            </label>
                         </div>
-
                         <div class="form-group">
                             <label class="col-half">Invoice</label>
                             <input type="text" class="col-half" name="invoice">
                         </div>
-
                         <div class="form-group">
-                            <label class="col-half">Case Manager</label>
-                            <input type="text" class="col-half" name="initial">
+                            <label class="col-half" style="width: 100%;">
+                                <input type="radio" name="is_paid" id="unpaid" value="unpaid" checked>
+                                <label for="unpaid" style="margin-right: 5px;">Unpaid</label>
+
+                                <input type="radio" name="is_paid" id="paid" value="paid">
+                                <label for="paid">Paid</label>
+                            </label>
                         </div>
 
-                        <div class="form-group">
-                            <label class="col-half">Bills Month</label>
-                            <select name="bills_year">
-                                <?php
-                                $year = date("Y");
-                                echo "<option>" . $year - 1 . "</option>"; // 去年
-                                echo "<option selected>" . $year . "</option>"; // 今年
-                                echo "<option>" . $year + 1 . "</option>"; // 明年
-                                ?>
-                            </select>
-                            <select name="bills_month">
-                                <?php
-                                for ($month = 1; $month <= 12; $month++) {
-                                    if ($month == date("m")) {
-                                        echo "<option selected>" . sprintf("%02d", $month) . "</option>";
-                                    } else {
-                                        echo "<option>" . sprintf("%02d", $month) . "</option>";
+                        <!-- ------ Unpaid-only 區塊 ------ -->
+                        <div id="unpaidFields">
+                            <div class="form-group">
+                                <label class="col-half">Case Manager</label>
+                                <input type="text" class="col-half" name="initial">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-half">Bills Month</label>
+                                <select name="bills_year">
+                                    <?php
+                                    $year = date("Y");
+                                    echo "<option>" . $year - 1 . "</option>"; // 去年
+                                    echo "<option selected>" . $year . "</option>"; // 今年
+                                    echo "<option>" . $year + 1 . "</option>"; // 明年
+                                    ?>
+                                </select>
+                                <select name="bills_month">
+                                    <?php
+                                    for ($month = 1; $month <= 12; $month++) {
+                                        if ($month == date("m")) {
+                                            echo "<option selected>" . sprintf("%02d", $month) . "</option>";
+                                        } else {
+                                            echo "<option>" . sprintf("%02d", $month) . "</option>";
+                                        }
                                     }
-                                }
-                                ?>
-                            </select>
+                                    ?>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="col-half">Unpaid</label>
-                            <input type="radio" name="is_paid" id="unpaid" value="unpaid" checked>
-
-                            <label class="col-half">Paid</label>
-                            <input type="radio" name="is_paid" id="paid" value="paid">
+                        <!-- ------ Paid-only 區塊 (預設隱藏) ------ -->
+                        <div id="paidFields" style="display: none;">
+                            <div class="form-group">
+                                <label class="col-half">Payment Method</label>
+                                <input type="text" class="col-half" name="method">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-half">Start Date</label>
+                                <input type="date" class="col-half" name="start_date"
+                                        min="2019-01-01" max="2100-01-01">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-half">End Date</label>
+                                <input type="date" class="col-half" name="end_date"
+                                        min="2019-01-01" max="2100-01-01">
+                            </div>
                         </div>
 
+                        <!-- 共用欄位: Receipt Month、申請單號 -->
                         <div class="form-group">
                             <label class="col-half">Receipt Month</label>
                             <select name="receipt_year">
@@ -112,12 +135,12 @@
                                 ?>
                             </select>
                         </div>
-
                         <div class="form-group">
                             <label class="col-half">申請單號</label>
                             <input type="text" class="col-half" name="application_num">
                         </div>
 
+                        <!-- 按鈕區 -->
                         <div class="s-form-bot">
                             <button type="submit" name="list" value="list" style="margin-bottom: 12px;">List</button>
                             <br>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -137,6 +160,28 @@
                         </div>
                     </form>
                 </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const unpaidFields = document.getElementById('unpaidFields');
+                        const paidFields   = document.getElementById('paidFields');
+                        const paidRadios   = document.querySelectorAll('input[name="is_paid"]');
+
+                        function togglePaidFields() {
+                            if (this.value === 'paid' && this.checked) {
+                                unpaidFields.style.display = 'none';
+                                paidFields.style.display   = 'block';
+                            } else if (this.value === 'unpaid' && this.checked) {
+                                paidFields.style.display   = 'none';
+                                unpaidFields.style.display = 'block';
+                            }
+                        }
+
+                        paidRadios.forEach(radio => {
+                            radio.addEventListener('change', togglePaidFields);
+                        });
+                    });
+                </script>
 
                 <!-- 搜尋條件內容結束 -->
 
@@ -190,10 +235,13 @@
                                 $case_num = $_POST['case_number'] ?? '';
                                 $match_or_like = $_POST['match_or_like'] ?? '';
                                 $invoice = $_POST['invoice'] ?? '';
+                                $is_paid = $_POST['is_paid'] ?? '';
                                 $initial = $_POST['initial'] ?? '';
                                 $bills_year = $_POST['bills_year'] ?? '';
                                 $bills_month = $_POST['bills_month'] ?? '';
-                                $is_paid = $_POST['is_paid'] ?? '';
+                                $payment_method = $_POST['method'] ?? '';
+                                $payment_start = $_POST['start_date'] ?? '';
+                                $payment_end = $_POST['end_date'] ?? '';
                                 $receipt_year = $_POST['receipt_year'] ?? '';
                                 $receipt_month = $_POST['receipt_month'] ?? '';
                                 $application_num = $_POST['application_num'] ?? '';
@@ -594,43 +642,22 @@
                     });
 
                     // 透過 AJAX 發送請求
-                    const files = [
-                        "/test_db/receipts_report_1_db.php",
-                        "/test_db/receipts_report_2_db.php",
-                        "/test_db/receipts_report_3_db.php",
-                        // "/test_db/receipts_export_db.php"
-                    ];
-
-                    let formData = new FormData();
+                    var formData = new FormData();
                     formData.append("selectedData", JSON.stringify(selectedRowsData));
                     formData.append("uncheckedDisbsData", JSON.stringify(uncheckedDisbsData));
 
-                    // 迭代每個檔案路徑，分別發送 POST 請求
-                    files.forEach(file => {
-                        fetch(file, {
-                            method: "POST",
-                            body: formData
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`下載失敗: ${file}`);
-                            }
-                            return response.blob(); 
-                        })
-                        .then(blob => {
-                            let url = window.URL.createObjectURL(blob);
-                            let a = document.createElement("a");
-                            a.href = url;
-                            a.download = file.split('/').pop().replace('.php', '.xlsx'); // 設定下載的檔名
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            window.URL.revokeObjectURL(url);
-                        })
-                        .catch(error => {
-                            console.error("發生錯誤：", error);
-                            alert("下載 " + file + " 時發生錯誤！");
-                        });
+                    fetch("/test_db/receipts_export_db.php", {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    })
+                    .catch(error => {
+                        alert("發生錯誤，請稍後再試！");
+                        console.error("發生錯誤：", error);
                     });
                 }
             }

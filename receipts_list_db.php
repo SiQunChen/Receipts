@@ -22,14 +22,24 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $initial, $bill
     if ($type === 'list') {
         // 優先查詢申請單號
         if ($application_num !== '') {
-            $sql = "WITH receipt_sum AS (
+            $sql = "WITH 
+                    receipt_sum AS (
                         SELECT 
                             deb_num,
                             SUM(disbs) AS disbs_sum,
                             SUM(foreign_disbs) AS foreign_disbs_sum
                         FROM receipt
                         GROUP BY deb_num
-                    )
+                    ), 
+                    show_as_legal AS ( 
+                        SELECT 
+                            deb_num,  
+                            SUM(ntd_amount) AS show_sum,
+                            SUM(foreign_amount2) AS foreign_show_sum 
+                        FROM disbursements 
+                        WHERE show_as_legal_service_flag='1' 
+                        GROUP BY deb_num  
+                    ) 
                     SELECT 
                         cases.case_num,
                         cases.wht_status,
@@ -38,20 +48,27 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $initial, $bill
                         bills.party_en_name_bills,
                         bills.billing_currency,
                         bills.deb_num,
-                        bills.legal_services,
-                        bills.disbs,
-                        bills.foreign_legal2,
-                        bills.foreign_disbs2,
+                        bills.legal_services + COALESCE(show_as_legal.show_sum,0) AS legal_services, 
+                        bills.disbs - COALESCE(show_as_legal.show_sum,0) AS disbs, 
+                        bills.foreign_legal2 + COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_legal2, 
+                        bills.foreign_disbs2 - COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_disbs2,
                         bills.total,
                         bills.foreign_total2,
                         bills.currency2,
                         bills.sent,
+                        receipt_sec_deb.split_entity,
+                        receipt_sec_deb.split_deb_num,
+                        receipt_sec_deb.split_legal_services,
+                        receipt_sec_deb.split_disbs,
                         COALESCE(receipt_sum.disbs_sum) AS disbs_sum,
-                        COALESCE(receipt_sum.foreign_disbs_sum) AS foreign_disbs_sum
+                        COALESCE(receipt_sum.foreign_disbs_sum) AS foreign_disbs_sum,
+                        COALESCE(show_as_legal.show_sum) AS show_as_legal_total, 
+                        COALESCE(show_as_legal.foreign_show_sum)  AS foreign_show_as_legal_total
                         FROM cases
                         LEFT JOIN bills ON cases.case_num = bills.case_num 
                         LEFT JOIN receipt_sum ON bills.deb_num=receipt_sum.deb_num
                         LEFT JOIN receipt_sec_deb ON bills.deb_num=receipt_sec_deb.deb_num
+                        LEFT JOIN show_as_legal ON bills.deb_num=show_as_legal.deb_num 
                         WHERE receipt_sec_deb.sec_id=$application_num
                         AND NOT EXISTS( SELECT 1 
                                         FROM receipt_sum 
@@ -119,7 +136,16 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $initial, $bill
                             FROM receipt
                             WHERE status = '1'
                             GROUP BY deb_num
-                        )
+                        ),
+                        show_as_legal AS ( 
+                            SELECT 
+                                deb_num,  
+                                SUM(ntd_amount) AS show_sum,
+                                SUM(foreign_amount2) AS foreign_show_sum 
+                            FROM disbursements 
+                            WHERE show_as_legal_service_flag='1' 
+                            GROUP BY deb_num  
+                        ) 
                         SELECT 
                             cases.case_num,
                             cases.wht_status,
@@ -128,24 +154,24 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $initial, $bill
                             bills.party_en_name_bills,
                             bills.billing_currency,
                             bills.deb_num,
-                            bills.legal_services,
-                            bills.disbs,
-                            bills.foreign_legal2,
-                            bills.foreign_disbs2,
+                            bills.legal_services + COALESCE(show_as_legal.show_sum,0) AS legal_services, 
+                            bills.disbs - COALESCE(show_as_legal.show_sum,0) AS disbs, 
+                            bills.foreign_legal2 + COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_legal2, 
+                            bills.foreign_disbs2 - COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_disbs2,
                             bills.total,
                             bills.foreign_total2,
                             bills.currency2,
                             bills.sent,
-                            payments.rec_date,
-                            payments.method,
                             COALESCE(receipt_sum.disbs_sum) AS disbs_sum,
                             COALESCE(receipt_sum.foreign_disbs_sum) AS foreign_disbs_sum,
                             COALESCE(receipt_sum.services_sum) AS services_sum,
-                            COALESCE(receipt_sum.foreign_services_sum) AS foreign_services_sum
+                            COALESCE(receipt_sum.foreign_services_sum) AS foreign_services_sum,
+                            COALESCE(show_as_legal.show_sum) AS show_as_legal_total, 
+                            COALESCE(show_as_legal.foreign_show_sum)  AS foreign_show_as_legal_total
                             FROM cases
                             LEFT JOIN bills ON cases.case_num = bills.case_num 
-                            LEFT JOIN payments ON bills.deb_num = payments.deb_num
                             LEFT JOIN receipt_sum ON bills.deb_num=receipt_sum.deb_num
+                            LEFT JOIN show_as_legal ON bills.deb_num=show_as_legal.deb_num 
                             WHERE $where_clause
                             AND NOT EXISTS( SELECT 1 
                                             FROM receipt_sum 
@@ -280,7 +306,8 @@ function getReceiptsDetail($deb_num) {
     $sql = "SELECT id, case_num, \"date\", disb_name, ntd_amount, currency2, foreign_amount2 
             FROM disbursements 
             WHERE deb_num LIKE $1
-            AND id NOT IN (SELECT disbs_ref_id FROM receipt_disbs)";
+            AND id NOT IN (SELECT disbs_ref_id FROM receipt_disbs)
+            AND show_as_legal_service_flag = '-1'";
 
     // 使用參數化查詢以防止 SQL 注入
     $result = pg_query_params($dblink, $sql, [$deb_num]);
