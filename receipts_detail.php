@@ -14,7 +14,7 @@
 
                 <?php
                 require_once('test_db/receipts_list_db.php');
-                $results = getReceiptsDetail($_GET['deb_num']);
+                $results = getReceiptsDetail($_GET['is_paid'], $_GET['deb_num']);
                 // print_r($results);
                 ?>
 

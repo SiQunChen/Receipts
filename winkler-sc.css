@@ -26,20 +26,20 @@
     text-align: center;
 }
 
-.winkler-sc-receipts-create-form-container {
+.winkler-sc-create-form-container {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
 }
 
-.winkler-sc-receipts-create-form-group {
+.winkler-sc-create-form-group {
     flex: 1 1 calc(50% - 16px);
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.winkler-sc-receipts-create-form-group label {
+.winkler-sc-create-form-group label {
     flex: 0 0 40%;
     margin-bottom: 0;
     text-align: right;

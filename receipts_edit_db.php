@@ -11,7 +11,7 @@ require_once '../vendor/autoload.php';
 
 // 連接資料庫
 global $dblink;
-$dblink = pg_pconnect(DB_CONNECT);
+$dblink = pg_connect(DB_CONNECT);
 if (!$dblink) {
     exit("無法連接到資料庫: " . pg_last_error());
 }
