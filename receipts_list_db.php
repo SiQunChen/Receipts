@@ -181,39 +181,57 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                             COALESCE(receipt_sum.disbs_sum) AS disbs_sum
                         FROM cases
                         LEFT JOIN bills ON cases.case_num = bills.case_num 
-                        LEFT JOIN receipt_sum ON bills.deb_num=receipt_sum.deb_num
-                        LEFT JOIN show_as_legal ON bills.deb_num=show_as_legal.deb_num 
+                        LEFT JOIN receipt_sum ON bills.deb_num = receipt_sum.deb_num
+                        LEFT JOIN show_as_legal ON bills.deb_num = show_as_legal.deb_num 
                         WHERE $where_clause
                         AND NOT EXISTS( SELECT 1 
                                         FROM receipt_sum 
-                                        WHERE bills.deb_num=receipt_sum.deb_num 
-                                        AND (bills.disbs = receipt_sum.disbs_sum OR bills.foreign_disbs2 = receipt_sum.foreign_disbs_sum)
-                                        AND (bills.legal_services = receipt_sum.services_sum OR bills.foreign_legal2 = receipt_sum.foreign_services_sum))
+                                        WHERE bills.deb_num = receipt_sum.deb_num 
+                                        AND 
+                                            ((bills.disbs - COALESCE(show_as_legal.show_sum,0)) = receipt_sum.disbs_sum 
+                                            OR (bills.foreign_disbs2 - COALESCE(show_as_legal.foreign_show_sum,0)) = receipt_sum.foreign_disbs_sum)
+                                        AND 
+                                            ((bills.legal_services + COALESCE(show_as_legal.show_sum,0)) = receipt_sum.services_sum 
+                                            OR (bills.foreign_legal2 + COALESCE(show_as_legal.foreign_show_sum,0)) = receipt_sum.foreign_services_sum))
                         ORDER BY sent";
             } elseif ($is_paid === 'paid') {
-                $sql = "SELECT 
+                $sql = "WITH receipt_sum AS (
+                            SELECT 
+                                deb_num,
+                                SUM(disbs) AS disbs_sum,
+                                SUM(foreign_disbs) AS foreign_disbs_sum,
+                                SUM(legal_services) AS services_sum,
+                                SUM(foreign_services) AS foreign_services_sum
+                            FROM receipt
+                            WHERE status = '1'
+                            GROUP BY deb_num
+                        )
+                        SELECT 
                             cases.case_num,
-                            cases.wht_status,
-                            cases.wht_model,
-                            cases.wht_base,
                             cases.receipt_tax_id,
                             bills.party_en_name_bills,
                             bills.deb_num,
                             bills.sent,
                             payments.method,
-                            payments.legal_services,
-                            payments.disbs,
+                            payments.with_tax,
+                            payments.holding_tax,
+                            payments.legal_services - COALESCE(receipt_sum.services_sum,0) AS legal_services,
+                            payments.disbs - COALESCE(receipt_sum.disbs_sum,0) AS disbs,
+                            payments.foreign_legal - COALESCE(receipt_sum.foreign_services_sum,0) as foreign_legal2,
+                            payments.foreign_disbs - COALESCE(receipt_sum.foreign_disbs_sum,0) as foreign_disbs2,
                             payments.currency as currency2,
-                            payments.foreign_legal as foreign_legal2,
-                            payments.foreign_disbs as foreign_disbs2
+                            COALESCE(receipt_sum.disbs_sum) AS disbs_sum
                         FROM cases
                         LEFT JOIN bills ON cases.case_num = bills.case_num 
+                        LEFT JOIN receipt_sum ON bills.deb_num = receipt_sum.deb_num
                         LEFT JOIN payments ON bills.deb_num = payments.deb_num
                         WHERE $where_clause
                         AND NOT EXISTS( SELECT 1 
-                                        FROM receipt 
-                                        WHERE receipt.deb_num = payments.deb_num )
-                        ORDER BY rec_date";
+                                        FROM receipt_sum 
+                                        WHERE payments.deb_num = receipt_sum.deb_num 
+                                        AND (payments.disbs = receipt_sum.disbs_sum OR payments.foreign_disbs = receipt_sum.foreign_disbs_sum)
+                                        AND (payments.legal_services = receipt_sum.services_sum OR payments.foreign_legal = receipt_sum.foreign_services_sum))
+                        ORDER BY deb_num";
             } else {
                 return("無效的 is_paid 值");
             }
@@ -256,33 +274,68 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
         // 組合條件
         $where_clause = count($conditions) > 0 ? implode(' AND ', $conditions) : '1=1'; // 如果沒有條件，使用 `1=1`
 
-        $sql = "SELECT 
-                    receipt.receipt_entity,
-                    receipt.case_num,
-                    receipt.deb_num,
-                    receipt.bills_sent,
-                    receipt.receipt_num,
-                    receipt.legal_services,
-                    receipt.disbs,
-                    receipt.total,
-                    receipt.wht, 
-                    receipt.note_legal,
-                    receipt.currency, 
-                    receipt.foreign_services, 
-                    receipt.foreign_disbs,
-                    receipt.foreign_total,
-                    receipt.foreign_wht,
-                    receipt.note_disbs,
-                    receipt.status,
-                    bills.bills_case_manager,
-                    cases.receipt_tax_id
-                FROM receipt
-                LEFT JOIN bills ON receipt.case_num = bills.case_num AND receipt.deb_num = bills.deb_num
-                LEFT JOIN cases ON receipt.case_num = cases.case_num 
-                WHERE $where_clause
-                ORDER BY receipt.receipt_num";
+        // 相同 receipt_num 的資料要合併金額
+        $sql = "WITH RankedData AS (
+                    -- 步驟 1: 選取所有需要的欄位，並加上一個排序編號
+                    SELECT
+                        receipt.receipt_entity,
+                        receipt.case_num,
+                        receipt.deb_num,
+                        receipt.bills_sent,
+                        receipt.receipt_num,
+                        receipt.legal_services,
+                        receipt.disbs,
+                        receipt.total,
+                        receipt.wht,
+                        receipt.note_legal,
+                        receipt.currency,
+                        receipt.foreign_services,
+                        receipt.foreign_disbs,
+                        receipt.foreign_total,
+                        receipt.foreign_wht,
+                        receipt.note_disbs,
+                        receipt.status,
+                        bills.bills_case_manager,
+                        cases.receipt_tax_id,
+                        ROW_NUMBER() OVER(PARTITION BY receipt.receipt_num ORDER BY receipt.deb_num ASC) as rn
+                    FROM
+                        receipt
+                    LEFT JOIN
+                        bills ON receipt.case_num = bills.case_num AND receipt.deb_num = bills.deb_num
+                    LEFT JOIN
+                        cases ON receipt.case_num = cases.case_num
+                    WHERE
+                        $where_clause
+                )
+                -- 步驟 2: 從 CTE 中查詢最終結果
+                SELECT
+                    MAX(CASE WHEN rn = 1 THEN receipt_entity END) AS receipt_entity,
+                    MAX(CASE WHEN rn = 1 THEN case_num END) AS case_num,
+                    MAX(CASE WHEN rn = 1 THEN deb_num END) AS deb_num,
+                    MAX(CASE WHEN rn = 1 THEN bills_sent END) AS bills_sent,
+                    receipt_num,
+                    MAX(CASE WHEN rn = 1 THEN note_legal END) AS note_legal,
+                    MAX(CASE WHEN rn = 1 THEN currency END) AS currency,
+                    MAX(CASE WHEN rn = 1 THEN note_disbs END) AS note_disbs,
+                    MAX(CASE WHEN rn = 1 THEN status END) AS status,
+                    MAX(CASE WHEN rn = 1 THEN bills_case_manager END) AS bills_case_manager,
+                    MAX(CASE WHEN rn = 1 THEN receipt_tax_id END) AS receipt_tax_id,
+
+                    SUM(legal_services) AS legal_services,
+                    SUM(disbs) AS disbs,
+                    SUM(total) AS total,
+                    SUM(wht) AS wht,
+                    SUM(foreign_services) AS foreign_services,
+                    SUM(foreign_disbs) AS foreign_disbs,
+                    SUM(foreign_total) AS foreign_total,
+                    SUM(foreign_wht) AS foreign_wht
+                FROM
+                    RankedData
+                GROUP BY
+                    receipt_num
+                ORDER BY
+                    receipt_num;";
     }
-    
 
     // 執行查詢
     $result = pg_query_params($dblink, $sql, $params);
@@ -328,12 +381,32 @@ function getReceiptsDetail($is_paid, $deb_num, $receipt_num = null) {
                             foreign_amount as foreign_amount2
                     FROM disbs_payments 
                     WHERE deb_num LIKE $1
-                    AND disbs_payments_id NOT IN (SELECT disbs_ref_id FROM receipt_disbs)";
+                    AND disbs_payments_id NOT IN (
+                        SELECT d.disbs_pay_id
+                        FROM receipt_disbs d
+                        JOIN (
+                            SELECT r.receipt_num
+                            FROM receipt r
+                            WHERE r.status = 1
+                            ORDER BY r.deb_num ASC
+                            LIMIT 1
+                        ) r1 ON d.receipt_num = r1.receipt_num
+                    )";
         } elseif ($is_paid === 'false') {
             $sql = "SELECT id, case_num, \"date\", disb_name, ntd_amount, currency2, foreign_amount2 
                     FROM disbursements 
                     WHERE deb_num LIKE $1
-                    AND id NOT IN (SELECT disbs_ref_id FROM receipt_disbs)
+                    AND id NOT IN (
+                        SELECT d.disbs_ref_id
+                        FROM receipt_disbs d
+                        JOIN (
+                            SELECT r.receipt_num
+                            FROM receipt r
+                            WHERE r.status = 1
+                            ORDER BY r.deb_num ASC
+                            LIMIT 1
+                        ) r1 ON d.receipt_num = r1.receipt_num
+                    )
                     AND show_as_legal_service_flag = '-1'";
         }
 

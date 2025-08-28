@@ -594,76 +594,80 @@
                     </form>
 
                 <?php elseif (isset($_POST['edit'])): ?>
-                    <!-- 列表畫面：使用 table 顯示資料 -->
-                    <div class="table-responsive">
-                        <!-- 列表的表單包覆整個表格 -->
-                        <table class="table hv1-table table-hover">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">
-                                        <input type="checkbox" name="select_all" style="width:100%;"
-                                            onchange="toggleAll(this, 'row_check_box')">
-                                    </th>
-                                    <th class="text-center">Receipt Num</th>
-                                    <th class="text-center">Entity</th>
-                                    <th class="text-center">Case Num</th>
-                                    <th class="text-center">Invoice</th>
-                                    <th class="text-center">Services</th>
-                                    <th class="text-center">Disbs</th>
-                                    <th class="text-center">Total</th>
-                                    <th class="text-center">WHT</th>
-                                    <th class="text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="edit">
-                                <?php
-                                foreach ($dataArray as $i => $data) {
-                                    if ($data['currency'] === 'TWD') {
-                                        $legal_services = $data['legal_services'];
-                                        $disbs = $data['disbs'];
-                                        $total = $data['total'];
-                                        $wht = $data['wht'];
-                                    } else {
-                                        $legal_services = $data['foreign_services'];
-                                        $disbs = $data['foreign_disbs'];
-                                        $total = $data['foreign_total'];
-                                        $wht = $data['foreign_wht'];
-                                    }
-
-                                    $note_legal = $data['note_legal'] !== '' ? "value={$data['note_legal']}" : '';
-                                    $note_disbs = $data['note_disbs'] !== '' ? "value={$data['note_disbs']}" : '';
-                                    $status = $data['status'] === '1' ?
-                                        "<td class='text-center'>有效</td>" :
-                                        "<td class='text-center' style='color: red;'>作廢</td>";
-
-                                    echo "
-                                        <tr>
-                                            <td class='text-center'>
-                                                <input type='checkbox' name='row_check_box[$i]' value='$i' style='width: calc(100%)'>
-                                            </td>
-                                            <td class='text-left'>{$data['receipt_num']}</td>
-                                            <td class='text-left'>{$data['receipt_entity']}</td>
-                                            <td class='text-left'>{$data['case_num']}</td>
-                                            <td class='text-center'>{$data['deb_num']}</td>
-                                            <td class='text-right' style='max-width: 150px'>
-                                                $legal_services<br>
-                                                <input type='text' name='note_legal[$i]' $note_legal style='width: calc(100%)'>
-                                            </td>
-                                            <td class='text-right' style='max-width: 150px'>
-                                                $disbs<br>
-                                                <input type='text' name='note_disbs[$i]' $note_disbs style='width: calc(100%)'>
-                                            </td>
-                                            <td class='text-right'>
-                                                $total<br>{$data['currency']}
-                                            </td>
-                                            <td class='text-right'>$wht</td>
-                                            $status
-                                        </tr>";
+                    <!-- 列表的表單包覆整個表格 -->
+                    <table class="table hv1-table table-hover">
+                        <thead>
+                            <tr>
+                                <th class="text-center">
+                                    <input type="checkbox" name="select_all" style="width:100%;"
+                                        onchange="toggleAll(this, 'row_check_box')">
+                                </th>
+                                <th class="text-center">Receipt Num</th>
+                                <th class="text-center">Entity</th>
+                                <th class="text-center">Case Num</th>
+                                <th class="text-center">Invoice</th>
+                                <th class="text-center">Services</th>
+                                <th class="text-center">Disbs</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">WHT</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="edit">
+                            <?php
+                            foreach ($dataArray as $i => $data) {
+                                if ($data['currency'] === 'TWD') {
+                                    $legal_services = $data['legal_services'];
+                                    $disbs = $data['disbs'];
+                                    $total = $data['total'];
+                                    $wht = $data['wht'];
+                                } else {
+                                    $legal_services = $data['foreign_services'];
+                                    $disbs = $data['foreign_disbs'];
+                                    $total = $data['foreign_total'];
+                                    $wht = $data['foreign_wht'];
                                 }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
+
+                                $receipt_entity = htmlspecialchars($data['receipt_entity'], ENT_QUOTES);
+                                $note_legal = $data['note_legal'] !== '' 
+                                                ? 'value="' . htmlspecialchars($data['note_legal'], ENT_QUOTES) . '"' 
+                                                : '';
+                                $note_disbs = $data['note_disbs'] !== '' 
+                                                ? 'value="' . htmlspecialchars($data['note_disbs'], ENT_QUOTES) . '"' 
+                                                : '';
+                                $status = $data['status'] === '1' ?
+                                    "<td class='text-center'>有效</td>" :
+                                    "<td class='text-center' style='color: red;'>作廢</td>";
+
+                                echo "
+                                    <tr>
+                                        <td class='text-center'>
+                                            <input type='checkbox' name='row_check_box[$i]' value='$i' style='width: calc(100%)'>
+                                        </td>
+                                        <td class='text-left'>{$data['receipt_num']}</td>
+                                        <td class='text-left'>
+                                            <textarea name='receipt_entity[$i]' rows='3'>$receipt_entity</textarea>
+                                        </td>
+                                        <td class='text-left'>{$data['case_num']}</td>
+                                        <td class='text-center'>{$data['deb_num']}</td>
+                                        <td class='text-right' style='max-width: 150px'>
+                                            $legal_services<br>
+                                            <input type='text' name='note_legal[$i]' $note_legal style='width: calc(100%)'>
+                                        </td>
+                                        <td class='text-right' style='max-width: 150px'>
+                                            $disbs<br>
+                                            <input type='text' name='note_disbs[$i]' $note_disbs style='width: calc(100%)'>
+                                        </td>
+                                        <td class='text-right'>
+                                            $total<br>{$data['currency']}
+                                        </td>
+                                        <td class='text-right'>$wht</td>
+                                        $status
+                                    </tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
 
                 <?php elseif (isset($_POST['change'])): ?>
                     <!-- 作廢/替換畫面：顯示對應表單 -->
@@ -797,13 +801,13 @@
                         // 根據類型取得不同欄位
                         const fieldNames = type === 'list' 
                             ? ['party_en_name_bills', 'note_legal', 'note_disbs', 'wht']
-                            : ['note_legal', 'note_disbs'];
+                            : ['receipt_entity', 'note_legal', 'note_disbs'];
 
                         fieldNames.forEach(field => {
                             const element = row.querySelector(
-                                field === 'party_en_name_bills' 
-                                    ? `textarea[name="${field}[${rowIndex}]"]`
-                                    : `input[name="${field}[${rowIndex}]"]`
+                                field === 'party_en_name_bills' || field === 'receipt_entity'
+                                        ? `textarea[name="${field}[${rowIndex}]"]`
+                                        : `input[name="${field}[${rowIndex}]"]`
                             );
                             rowData[field === 'party_en_name_bills' ? 'entity' : field] = element?.value || "";
                         });
@@ -830,8 +834,8 @@
                     return JSON.stringify(data);
                 }
 
-                // 檢查收據年月是否為當前年月，如果不是則設定 sent 為該月最後一天
-                function getSentDateIfNeeded(receipt_year, receipt_month) {
+                // 檢查收據年月是否為當前年月，如果不是則設定 receipt_date 為該月最後一天
+                function getReceiptDateIfNeeded(receipt_year, receipt_month) {
                     const today = new Date();
                     const currentFullYear = today.getFullYear(); // 直接取四位數年份
                     const currentMonth = today.getMonth() + 1; // 直接取數字月份 (1-12)
@@ -918,7 +922,7 @@
                     const isMerged = isMergeExist && isMergeExist.checked;
 
                     // 準備 list 類型專用資料
-                    let receipt_year, receipt_month, receiptNum, sent;
+                    let receipt_year, receipt_month, receiptNum, receipt_date;
                     let uncheckedDisbsData = "{}";
 
                     if (type === 'list') {
@@ -926,28 +930,58 @@
                         receipt_year = receiptData.receipt_year;
                         receipt_month = receiptData.receipt_month;
                         receiptNum = receiptData.receiptNum;
-                        sent = getSentDateIfNeeded(receipt_year, receipt_month);
+                        receipt_date = getReceiptDateIfNeeded(receipt_year, receipt_month);
                         uncheckedDisbsData = getUncheckedDisbsData();
                     }
 
-                    // 步驟 1: 下載所有 PDF
-                    for (let i = 0; i < selectedRowsData.length; i++) {
+                    // 步驟 1: 下載 PDF
+                    if (isMerged) {
+                        const aggregatedData = JSON.parse(JSON.stringify(selectedRowsData[0]));
+                        let totalWht = 0;
+                        let indexList = [];
+
+                        for (let i = 0; i < selectedRowsData.length; i++) {
+                            const currentRow = selectedRowsData[i];
+
+                            // 取得所有 index
+                            indexList.push(currentRow.index);
+
+                            // 加總 wht
+                            const whtString = String(currentRow.wht).replace(/,/g, '');
+                            const whtValue = parseFloat(whtString) || 0;
+                            totalWht += whtValue;
+                        }
+                        aggregatedData.wht = totalWht.toLocaleString('en-US');
+
                         const formData = new FormData();
-                        formData.append("selectedData", JSON.stringify(selectedRowsData[i]));
+                        formData.append("selectedData", JSON.stringify(aggregatedData));
                         formData.append("language", language);
                         formData.append("type", type);
-
-                        if (type === 'list') {
-                            formData.append("uncheckedDisbsData", uncheckedDisbsData);
-                            formData.append("ispaid", isMergeExist ? "true" : "false");
-                            let currentReceiptNum = receiptNum + (isMerged ? 0 : i);
-                            formData.append("receiptNum", `R${receipt_year}${receipt_month}${currentReceiptNum.toString().padStart(4, '0')}`);
-                            if (sent != null) {
-                                formData.append("sent", sent);
-                            }
-                        }
-
+                        formData.append("isMerged", true);
+                        formData.append("indexList", JSON.stringify(indexList)); 
+                        formData.append("uncheckedDisbsData", uncheckedDisbsData);
+                        formData.append("ispaid", isMergeExist ? "true" : "false");
+                        formData.append("receiptNum", `R${receipt_year}${receipt_month}${receiptNum.toString().padStart(4, '0')}`);
+                        if (receipt_date) formData.append("receiptDate", receipt_date);
+                        
                         await downloadFile(CONFIG.URLS.PDF, formData);
+                    } else {
+                        for (let i = 0; i < selectedRowsData.length; i++) {
+                            const formData = new FormData();
+                            formData.append("selectedData", JSON.stringify(selectedRowsData[i]));
+                            formData.append("language", language);
+                            formData.append("type", type);
+
+                            if (type === 'list') {
+                                formData.append("uncheckedDisbsData", uncheckedDisbsData);
+                                formData.append("ispaid", isMergeExist ? "true" : "false");
+                                let currentReceiptNum = receiptNum + i;
+                                formData.append("receiptNum", `R${receipt_year}${receipt_month}${currentReceiptNum.toString().padStart(4, '0')}`);
+                                if (receipt_date) formData.append("receiptDate", receipt_date);
+                            }
+
+                            await downloadFile(CONFIG.URLS.PDF, formData);
+                        }
                     }
 
                     // 步驟 2: 準備並提交所有資料到資料庫
@@ -970,8 +1004,8 @@
                     exportFormData.append("uncheckedDisbsData", uncheckedDisbsData);
                     exportFormData.append("ispaid", isMergeExist ? "true" : "false");
                     exportFormData.append("type", type);
-                    if (sent != null) {
-                        exportFormData.append("sent", sent);
+                    if (receipt_date != null) {
+                        exportFormData.append("receiptDate", receipt_date);
                     }
                     await downloadFile(CONFIG.URLS.EXPORT, exportFormData);
 

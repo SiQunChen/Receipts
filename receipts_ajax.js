@@ -26,10 +26,10 @@ function loadListData() {
 // 更新表格內容
 function updateTable(dataArray) {
     let tbody = '';
-    let is_paid = ('disbs_sum' in (dataArray[0])) ? false : true;
+    let is_paid = ('billing_currency' in (dataArray[0])) ? false : true;
 
     dataArray.forEach((data, index) => {
-        let entity, deb_num, services, disbs, total, currency, wht, disbs_sum, foreign_disbs_sum;
+        let entity, deb_num, services, disbs, total, currency, wht;
         let uncheckedId = [];
         let redColor = '';
         let disable = '';
@@ -48,14 +48,14 @@ function updateTable(dataArray) {
                 if (data.wht_status === '1') {
                     const amount = Number(data.wht_base) === '1' ? services : total;
                     wht = amount >= Number(data.wht_model) 
-                        ? (amount * 0.1).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                        ? (amount * 0.1).toFixed(2).toLocaleString()
                         : '0.00';
                 } else {
                     wht = '0.00';
                 }
-                services = services.toLocaleString(undefined, { minimumFractionDigits: 2 });
-                disbs = disbs.toLocaleString(undefined, { minimumFractionDigits: 2 });
-                total = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                services = services.toFixed(2).toLocaleString();
+                disbs = disbs.toFixed(2).toLocaleString();
+                total = total.toFixed(2).toLocaleString();
             } else {
                 currency = 'TWD';
                 if (data.wht_status === '1') {
@@ -101,19 +101,23 @@ function updateTable(dataArray) {
                 }
 
                 // 計算 wht
-                if (data.wht_status === '1') {
-                    const amount = Number(data.wht_base) === '1' ? services : total;
-                    wht = amount >= Number(data.wht_model) 
-                        ? (amount * 0.1).toLocaleString(undefined, { minimumFractionDigits: 2 })
-                        : '0.00';
+                if (!is_paid) {
+                    if (data.wht_status === '1') {
+                        const amount = Number(data.wht_base) === '1' ? services : total;
+                        wht = amount >= Number(data.wht_model) 
+                            ? (amount * 0.1).toFixed(2).toLocaleString()
+                            : '0.00';
+                    } else {
+                        wht = '0.00';
+                    }
                 } else {
-                    wht = '0.00';
+                    wht = Number(data.holding_tax).toFixed(2).toLocaleString();
                 }
 
                 // 調整格式
-                services = services.toLocaleString(undefined, { minimumFractionDigits: 2 });
-                disbs = disbs.toLocaleString(undefined, { minimumFractionDigits: 2 });
-                total = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                services = services.toFixed(2).toLocaleString();
+                disbs = disbs.toFixed(2).toLocaleString();
+                total = total.toFixed(2).toLocaleString();
             } else {
                 services = Number(data.legal_services);
                 disbs = Number(data.disbs);
@@ -131,11 +135,15 @@ function updateTable(dataArray) {
                 }
 
                 // 計算 wht
-                if (data.wht_status === '1') {
-                    const amount = Number(data.wht_base === '1' ? services : total);
-                    wht = amount >= Number(data.wht_model) ? Math.floor(amount * 0.1).toLocaleString() : '0';
+                if (!is_paid) {
+                    if (data.wht_status === '1') {
+                        const amount = Number(data.wht_base === '1' ? services : total);
+                        wht = amount >= Number(data.wht_model) ? Math.floor(amount * 0.1).toLocaleString() : '0';
+                    } else {
+                        wht = '0';
+                    }
                 } else {
-                    wht = 0;
+                    wht = data.with_tax.toLocaleString();
                 }
 
                 // 調整格式
@@ -145,7 +153,7 @@ function updateTable(dataArray) {
             }
 
             // 顯示部分銷帳後的 disbs
-            redColor = (is_paid && data.disbs_sum != null) ? "style='color: red;'" : "";
+            redColor = data.disbs_sum != null ? "style='color: red;'" : "";
         }
         
         // 生成表格行

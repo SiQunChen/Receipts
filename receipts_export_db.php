@@ -42,7 +42,7 @@ function isForeignCurrency($data, $is_paid): bool {
     return (!$is_paid && $isEnglishCurrency) || ($is_paid && $hasForeignValues);
 }
 
-function recordReceiptTable($entity, $case_num, $wht_status, $wht_model, $wht_base, $deb_num, $sent, $legal_services, $disbs, $wht, $note_legal, $is_foreign, $currency, $foreign_services, $foreign_disbs, $note_disbs, $uncheckedDisbsData, $receipt_num, $is_paid) {
+function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, $legal_services, $disbs, $wht, $note_legal, $is_foreign, $currency, $foreign_services, $foreign_disbs, $note_disbs, $uncheckedDisbsData, $receipt_num, $is_paid) {
     global $dblink;
     if (!$dblink) {
         throw new Exception("無法連接到資料庫");
@@ -65,10 +65,10 @@ function recordReceiptTable($entity, $case_num, $wht_status, $wht_model, $wht_ba
                     legal_services, disbs, total, wht, currency, foreign_services, foreign_disbs, 
                     foreign_total, foreign_wht, note_legal, note_disbs, currency_status
                 ) VALUES (
-                    $1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2];
     } else {
         // 部分銷帳
         if (isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
@@ -85,10 +85,10 @@ function recordReceiptTable($entity, $case_num, $wht_status, $wht_model, $wht_ba
                     legal_services, disbs, total, wht, foreign_services, foreign_disbs,
                     foreign_total, foreign_wht, note_legal, note_disbs, currency_status
                 ) VALUES (
-                    $1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1];
     }
 
     $res = pg_query_params($dblink, $query, $params);
@@ -134,16 +134,16 @@ function recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $i
     return true;
 }
 
-function updateReceiptTable($receipt_num, $note_legal, $note_disbs) {
+function updateReceiptTable($receipt_num, $receipt_entity, $note_legal, $note_disbs) {
     global $dblink;
     if (!$dblink) {
         throw new Exception("無法連接到資料庫");
     }
 
     $query = "UPDATE receipt 
-            SET note_legal = $2, note_disbs = $3 
+            SET receipt_entity = $2, note_legal = $3, note_disbs = $4
             WHERE receipt_num = $1";
-    $params = [$receipt_num, $note_legal, $note_disbs];
+    $params = [$receipt_num, $receipt_entity, $note_legal, $note_disbs];
     $res = pg_query_params($dblink, $query, $params);
     if (!$res) {
         throw new Exception("更新 receipt 失敗：" . pg_last_error($dblink));
@@ -191,14 +191,12 @@ try {
             $success = recordReceiptTable(
                 $data['selectedData']['entity'],
                 $session_data['case_num'],
-                $session_data['wht_status'],
-                $session_data['wht_model'],
-                $session_data['wht_base'],
                 $session_data['deb_num'],
-                $_POST['sent'] ?? $session_data['sent'],
-                (int)$session_data['legal_services'],
-                (int)$session_data['disbs'],
-                (int)(str_replace(',', '', $data['selectedData']['wht'])),
+                $session_data['sent'],
+                $_POST['receiptDate'] ?? date('Y-m-d'),
+                (float)$session_data['legal_services'],
+                (float)$session_data['disbs'],
+                (float)(str_replace(',', '', $data['selectedData']['wht'])),
                 $data['selectedData']['note_legal'],
                 isForeignCurrency($session_data, $is_paid === 'true'),
                 $session_data['currency2'],
@@ -212,6 +210,7 @@ try {
         } elseif ($type === 'edit') { // 執行 edit
             $success = updateReceiptTable(
                 $session_data['receipt_num'],
+                $data['selectedData']['receipt_entity'],
                 $data['selectedData']['note_legal'],
                 $data['selectedData']['note_disbs']
             );

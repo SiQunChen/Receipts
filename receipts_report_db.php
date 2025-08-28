@@ -28,22 +28,27 @@ use TCPDF;
 try {
     // 取得表單欄位
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $selectedDataJson = $_POST['selectedData'] ?? '';
-        $uncheckedDisbsDataJson = $_POST['uncheckedDisbsData'] ?? '';
+        $selectedDataJson = $_POST['selectedData'] ?? '{}';
+        $uncheckedDisbsDataJson = $_POST['uncheckedDisbsData'] ?? '{}';
+        $indexListJson = $_POST['indexList'] ?? '{}';
         $language = $_POST['language'] ?? 'chinese';
         $is_paid = $_POST['ispaid'] ?? '';
         $receipt_num = $_POST['receiptNum'] ?? sprintf("R%s%s%04d", date('y'), date('m'), 1);
         $type = $_POST['type'] ?? '';
+        $isMerged = $_POST['isMerged'] ?? false;
 
         // 將 JSON 格式轉換為 PHP 陣列
         $selectedData = json_decode($selectedDataJson, true);
         $uncheckedDisbsData = json_decode($uncheckedDisbsDataJson, true);
+        if ($isMerged) {
+            $indexList = json_decode($indexListJson, true);
+        }
 
         // 取得 session 中對應的資料
         $index = $selectedData['index'];
         $session_data = $_SESSION['dataArray'][$index] ?? null;
 
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') { // create 資料
         $entity = urldecode($_GET['entity'] ?? '');
         $case_num = urldecode($_GET['case_num'] ?? '');
         $deb_num = urldecode($_GET['invoice'] ?? '');
@@ -61,14 +66,14 @@ try {
         $other_fee = 0;
         $total = $services + $disbs;
     } else {
-        throw new Exception("只接受 POST 請求");
+        throw new Exception("不接受的請求");
     }
 
     // 執行 list
     if ($type === 'list') {
         // 取得欄位資料
         $entity = $selectedData['entity'];
-        $sent = $_POST['sent'] ?? $session_data['sent'];
+        $receipt_date = $_POST['receiptDate'] ?? date('Y/n/j');
         $receipt_tax_id = $session_data['receipt_tax_id'];
         $case_num = $session_data['case_num'];
         $deb_num = $session_data['deb_num'];
@@ -85,47 +90,92 @@ try {
 
         $isForeign = ($is_paid === 'false' && $isEnglishCurrency) || ($is_paid === 'true' && $hasForeignValues) ? true : false;
 
-        if ($isForeign) {
-            $currency = $session_data['currency2'];
-            $services = $session_data['foreign_legal2'];
+        if ($isMerged) {
+            $services = 0;
+            if ($isForeign) {
+                $currency = $session_data['currency2'];
+                foreach ($indexList as $i) {
+                    $services += $_SESSION['dataArray'][$i]['foreign_legal2'];
+                }
+            } else {
+                $currency = 'TWD';
+                foreach ($indexList as $i) {
+                    $services += $_SESSION['dataArray'][$i]['legal_services'];
+                }
+            }
         } else {
-            $currency = 'TWD';
-            $services = $session_data['legal_services'];
+            if ($isForeign) {
+                $currency = $session_data['currency2'];
+                $services = $session_data['foreign_legal2'];
+            } else {
+                $currency = 'TWD';
+                $services = $session_data['legal_services'];
+            }
         }
 
         ### 取得代墊金額
-        // 取得該筆所有代墊資料
-        $disbsDataArray = getReceiptsDetail($is_paid, $session_data['deb_num']);
+        if ($isMerged) {
+            $official_fee = 0;
+            $other_fee = 0;
 
-        // 取得該筆未勾選的代墊資料
-        $uncheckedDisbs = $uncheckedDisbsData[$session_data['deb_num']] ?? null;
+            // 遍歷所有 session 中的資料項目
+            foreach ($indexList as $i) {
+                // 1. 取得該筆項目所有的代墊明細
+                $disbsDataArray = getReceiptsDetail($is_paid, $_SESSION['dataArray'][$i]['deb_num']);
+                
+                // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
+                $uncheckedIds = array_column($uncheckedDisbsData[$deb_num] ?? [], 'id');
 
-        // 計算未勾選的代墊金額
-        $uncheckedDisbsAmount = 0;
-        if ($uncheckedDisbs !== null) {
-            foreach ($uncheckedDisbs as $rowUncheckedDisbs) {
-                $uncheckedDisbsAmount += $isForeign ? $rowUncheckedDisbs['foreign_amount'] : $rowUncheckedDisbs['amount'];
-            }
-        }
-
-        // 扣除未勾選金額後的代墊總額
-        $disbs = $isForeign ? $session_data['foreign_disbs2'] : $session_data['disbs'];
-        $disbs -= $uncheckedDisbsAmount;
-
-        // 計算代墊明細
-        $official_fee = 0;
-        $other_fee = 0;
-        $uncheckedIds = array_column($uncheckedDisbs ?? [], 'id');
-
-        foreach ($disbsDataArray as $disbs_data) {
-            if (!in_array($disbs_data['id'], $uncheckedIds)) {
-                $fee = $isForeign ? $disbs_data['foreign_amount2'] : $disbs_data['ntd_amount'];
-                if ($disbs_data['disb_name'] === 'Official Fee') {
-                    $official_fee += $fee;
-                } else {
-                    $other_fee += $fee;
+                // 3. 遍歷該筆項目的代墊明細
+                foreach ($disbsDataArray as $disbs_data) {
+                    // 如果該明細不在「未勾選」清單中，才進行加總
+                    if (!in_array($disbs_data['id'], $uncheckedIds)) {
+                        
+                        // 根據是否為外幣，取得正確的金額
+                        $fee = $isForeign ? (float)($disbs_data['foreign_amount2'] ?? 0) : (float)($disbs_data['ntd_amount'] ?? 0);
+                        
+                        // 判斷費用類別並累加至總和
+                        if ($disbs_data['disb_name'] === 'Official Fee') {
+                            $official_fee += $fee;
+                        } else {
+                            $other_fee += $fee;
+                        }
+                    }
                 }
             }
+            
+            // 4. 計算合併後的代墊總額
+            $disbs = $official_fee + $other_fee;
+
+        } else {
+            $official_fee = 0;
+            $other_fee = 0;
+            
+            // 1. 取得該筆項目所有的代墊明細
+            $disbsDataArray = getReceiptsDetail($is_paid, $session_data['deb_num']);
+            
+            // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
+            $uncheckedIds = array_column($uncheckedDisbsData[$session_data['deb_num']] ?? [], 'id');
+
+            // 3. 遍歷該筆項目的代墊明細
+            foreach ($disbsDataArray as $disbs_data) {
+                // 如果該明細不在「未勾選」清單中，才進行加總
+                if (!in_array($disbs_data['id'], $uncheckedIds)) {
+                    
+                    // 根據是否為外幣，取得正確的金額
+                    $fee = $isForeign ? (float)($disbs_data['foreign_amount2'] ?? 0) : (float)($disbs_data['ntd_amount'] ?? 0);
+                    
+                    // 判斷費用類別並累加
+                    if ($disbs_data['disb_name'] === 'Official Fee') {
+                        $official_fee += $fee;
+                    } else {
+                        $other_fee += $fee;
+                    }
+                }
+            }
+
+            // 4. 計算單筆的代墊總額
+            $disbs = $official_fee + $other_fee;
         }
 
         // 計算總金額
@@ -134,8 +184,8 @@ try {
 
         // 取得欄位資料
         $receipt_num = $session_data['receipt_num'];
-        $entity = $session_data['receipt_entity'];
-        $sent = $session_data['bills_sent'];
+        $entity = $selectedData['receipt_entity'];
+        $receipt_date = date('Y/n/j');
         $receipt_tax_id = $session_data['receipt_tax_id'];
         $case_num = $session_data['case_num'];
         $deb_num = $session_data['deb_num'];
@@ -205,70 +255,78 @@ try {
     $pdf->Ln(5);
 
     ### 基本資訊
+    $pdf->SetFont('msjh', '', 12);
+    $lineHeight = 6; // 行高
+    $leftStartX = 30; // 左邊內容（謹致後方）的起始 X 座標
+    $startY = $pdf->GetY(); // 儲存第一列的 Y 座標
+
     // 計算從哪邊開始靠右
     $rightMargin = 24; // 右邊邊界
-    $totalWidth = 56; // 每行兩個 Cell 的總寬度 = 28 + 28
-    $startX = $pdf->getPageWidth() - $rightMargin - $totalWidth;
+    $totalWidth = 54; // 每行兩個 Cell 的總寬度 = 24 + 30
+    $rightStartX = $pdf->getPageWidth() - $rightMargin - $totalWidth;
 
-    // 第一列
-    // 左邊
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->Cell(10, 6, '謹致', 0, 0);
-    // 右邊
-    $pdf->SetX($startX);
-    $pdf->Cell(28, 6, '收據號碼：', 0, 0);
-    $pdf->SetFont('msjh', '', 10);
-    $pdf->Cell(28, 6, $receipt_num, 'B', 1);
+    // ======================================================
+    // =========      第一階段：繪製所有左邊欄位      =========
+    // ======================================================
 
-    // 第二列
-    // 左邊，因為英文、數字的字體 12 視覺上比中文 12 還要大，故會根據每個字元不同做調整
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->Cell(10, 6, '', 0, 0);
-    foreach (mb_str_split($entity) as $char) {
-        // 判斷是否為中文字（Unicode 範圍 \x{4e00}-\x{9fff}）
-        if (preg_match('/\p{Han}/u', $char)) {
-            $pdf->SetFont('msjh', '', 12); // 中文用 12pt
-        } else {
-            $pdf->SetFont('msjh', '', 10); // 非中文用 10pt
-        }
+    // --- 第 1 列 (左) ---
+    $pdf->Cell(10, $lineHeight, '謹致', 0, 1);
 
-        // 輸出每個字元
-        $pdf->Cell($pdf->GetStringWidth($char), 6, $char, 0, 0);
-    }
-    // 右邊
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->SetX($startX);
-    $pdf->Cell(28, 6, '日　　期：', 0, 0);
-    $pdf->SetFont('msjh', '', 10);
-    $pdf->Cell(28, 6, (new DateTime($sent))->format('Y/n/j'), 'B', 1);
+    // --- 第 2 列 (左) ---
+    $pdf->SetX($leftStartX); // 設定縮排
+    $entityMaxWidth = $rightStartX - $pdf->GetX() - 2; // 計算可用寬度
+    $entityLines = $pdf->MultiCell($entityMaxWidth, $lineHeight, $entity, 0, 'L', false, 1); // 使用 MultiCell 處理 $entity 並取得行數
 
-    // 第三列
-    // 左邊
+    // --- 第 3 列 and 第 4 列 (左 - 條件式) ---
+    $linesUsed = $entityLines; // 目前已使用的行數
     if (!empty($receipt_tax_id)) {
-        $pdf->SetFont('msjh', '', 12);
-        $pdf->Cell(10, 6, '', 0, 0);
-        $pdf->Cell(22, 6, '統一編號：', 0, 0);
-        $pdf->SetFont('msjh', '', 10);
-        $pdf->Cell(100, 7, $receipt_tax_id, 0, 0);
+        $pdf->SetX($leftStartX);
+        $pdf->Cell(22, $lineHeight, '統一編號：', 0, 0);
+        $pdf->Cell(100, $lineHeight, $receipt_tax_id, 0, 1);
+        $linesUsed++; // 繪製了統一編號，已用行數加 1
     }
-    // 右邊
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->SetX($startX);
-    $pdf->Cell(28, 6, '本所案號：', 0, 0);
-    $pdf->SetFont('msjh', '', 10);
-    $pdf->Cell(28, 6, $case_num, 'B', 1);
 
-    // 第四列
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->SetX($startX);
-    $pdf->Cell(28, 6, '帳單號碼：', 0, 0);
-    $pdf->SetFont('msjh', '', 10);
-    $pdf->Cell(28, 6, $deb_num, 'B', 1);
+    // 計算還需要補上多少行的高度
+    $linesToAdvance = 3 - $linesUsed;
+    if ($linesToAdvance > 0) {
+        $pdf->Ln($lineHeight * $linesToAdvance);
+    }
 
-    // 第五列
-    $pdf->SetFont('msjh', '', 12);
-    $pdf->Cell(30, 6, '茲收到下列費用，此據。', 0, 1);
+    // --- 第 5 列 (左) ---
+    $pdf->Cell(30, $lineHeight, '茲收到下列費用，此據。', 0, 1);
 
+    // 儲存左側內容結束後的 Y 座標，以便最後將游標移到正確位置
+    $finalY = $pdf->GetY();
+
+
+    // ======================================================
+    // =========      第二階段：繪製所有右邊欄位      =========
+    // ======================================================
+
+    // --- 第 1 列 (右) ---
+    $pdf->SetXY($rightStartX, $startY); // 跳到第一列的 Y 座標
+    $pdf->Cell(24, $lineHeight, '收據號碼：', 0, 0);
+    $pdf->Cell(30, $lineHeight, $receipt_num, 'B', 0);
+
+    // --- 第 2 列 (右) ---
+    $pdf->SetXY($rightStartX, $startY + $lineHeight); // 跳到第二列的 Y 座標
+    $pdf->Cell(24, $lineHeight, '日　　期：', 0, 0);
+    $pdf->Cell(30, $lineHeight, (new DateTime($receipt_date))->format('Y/n/j'), 'B', 0);
+
+    // --- 第 3 列 (右) ---
+    $pdf->SetXY($rightStartX, $startY + 2 * $lineHeight); // 跳到第三列的 Y 座標
+    $pdf->Cell(24, $lineHeight, '本所案號：', 0, 0);
+    $pdf->Cell(30, $lineHeight, $case_num, 'B', 0);
+
+    // --- 第 4 列 (右) ---
+    $pdf->SetXY($rightStartX, $startY + 3 * $lineHeight); // 跳到第四列的 Y 座標
+    $pdf->Cell(24, $lineHeight, '帳單號碼：', 0, 0);
+    $pdf->Cell(30, $lineHeight, $deb_num, 'B', 0);
+
+
+    // --- 收尾 ---
+    // 將游標移動到所有內容的最下方，以利後續內容的添加
+    $pdf->SetY($finalY);
     $pdf->Ln(4);
 
     ### 表格
@@ -377,13 +435,13 @@ try {
     $pdf->Cell(0, 6, '博仲法律事務所    統一編號：14539065', 0, 1);
 
     // (2) 印章 (因為有進行一些旋轉，故比較複雜)
-    $image_file = __DIR__ . "/../image/receipts_seal.jpg";
+    $image_file = __DIR__ . "/../image/receipts_seal.png";
 
     // 取得圖片原始尺寸以計算顯示高度
     list($original_width, $original_height) = @getimagesize($image_file);
 
     // 設定圖片顯示寬度與根據比例計算高度
-    $display_width = 50;
+    $display_width = 42;
     $display_height = $display_width * ($original_height / $original_width);
 
     // 定義圖片左上角放置位置
@@ -394,8 +452,8 @@ try {
     $center_x = $x_pos + ($display_width / 2);
     $center_y = $y_pos + ($display_height / 2);
 
-    // 設定旋轉角度：順時針 0.3 度 (TCPDF 逆時針，故為 -0.3)
-    $rotation_angle = -0.3;
+    // 設定旋轉角度
+    $rotation_angle = 0;
 
     // 開始、執行旋轉並放置圖片，結束變形
     $pdf->StartTransform();
@@ -413,7 +471,7 @@ try {
     $pdf->Image(__DIR__ . "/../image/receipts_footer_{$language}.png", 20, 270, 170);
 
     // 輸出
-    $filename = "大藍收據_" . date('Ymd') . ".pdf";
+    $filename = date('Ymd') . "_$receipt_num.pdf";
     ob_end_clean();
     $pdf->Output($filename, 'D');
     exit;
