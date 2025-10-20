@@ -487,10 +487,10 @@
                                     <div class="form-inline">
                                         <?php
                                         if (empty($preset_data)) {
-                                            echo "<input type='text' id='case_num' name='case_num' class='form-control' required>";
+                                            echo "<input type='text' id='case_num' name='case_num' class='form-control'>";
                                         } else {
                                             $caseNumValue = htmlspecialchars($preset_data[0]['case_num'], ENT_QUOTES, 'UTF-8');
-                                            echo "<input type='text' id='case_num' name='case_num' class='form-control' value='$caseNumValue' required>";
+                                            echo "<input type='text' id='case_num' name='case_num' class='form-control' value='$caseNumValue'>";
                                         }
                                         ?>
                                     </div>
@@ -523,7 +523,7 @@
                                 <label for="services" class="col-md-2 control-label">Services</label>
                                 <div class="col-md-4">
                                     <div class="form-inline">
-                                        <input type="number" step="1" id="services" name="services" class="form-control"
+                                        <input type="number" step="any" id="services" name="services" class="form-control"
                                             value="0" required>
                                     </div>
                                 </div>
@@ -539,7 +539,7 @@
                                 <label for="disbursements" class="col-md-2 control-label">Disbursements</label>
                                 <div class="col-md-4">
                                     <div class="form-inline">
-                                        <input type="number" step="1" id="disbursements" name="disbursements"
+                                        <input type="number" step="any" id="disbursements" name="disbursements"
                                             class="form-control" value="0" required>
                                     </div>
                                 </div>
@@ -555,7 +555,7 @@
                                 <label for="wht" class="col-md-2 control-label">WHT</label>
                                 <div class="col-md-4">
                                     <div class="form-inline">
-                                        <input type="number" step="1" id="wht" name="wht" class="form-control" value="0"
+                                        <input type="number" step="any" id="wht" name="wht" class="form-control" value="0"
                                             required>
                                     </div>
                                 </div>
