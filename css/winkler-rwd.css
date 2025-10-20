@@ -1,0 +1,156 @@
+
+
+@media screen and (max-width: 376px) {
+    .navbar-brand  img{
+        width: 275px;
+        padding-top:3px;
+    }
+    .navbar-brand {
+        width: 75%;
+        padding:0;
+    }
+} 
+
+@media (max-width: 320px) {
+    .navbar-brand  img{
+        width: 100%;
+    }
+
+}
+
+@media (max-width: 767px) {
+/* 跟著左邊搜尋區塊變動的內容 */
+    #winkler-container {    
+        width: calc(100% - 90px);  
+        margin:50px 30px 30px 60px;
+        transition: all 0.5s ease-in 0s;
+        -webkit-transition: all 0.5s ease-in 0s;
+        -moz-transition: all 0.5s ease-in 0s;
+        -ms-transition: all 0.5s ease-in 0s;
+        -o-transition: all 0.5s ease-in 0s;        
+    }
+    #winkler-container.active {
+        width: calc(100% - 60px);
+        margin:50px 30px 30px;
+        box-sizing: border-box;
+        padding: 15px;
+        border: 1px solid #cecece;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.5s ease-in 0s;
+        -webkit-transition: all 0.5s ease-in 0s;
+        -moz-transition: all 0.5s ease-in 0s;
+        -ms-transition: all 0.5s ease-in 0s;
+        -o-transition: all 0.5s ease-in 0s;
+    }
+    .block-body-hg450{
+        height: 400px;
+    }
+    .flexbox-top{
+        height: 200px;
+        overflow-y: auto;
+        display: flex;
+    }
+    .flexbox-top .table-responsive{
+        width: 100%;
+        flex-grow:0;    
+    }
+    .flexbox-bottom{
+        height: 100px;
+        overflow-y: auto;
+        display: flex; 
+        flex-grow:1;  
+    }
+    .flexbox-top .table-responsive,
+    .flexbox-bottom .table-responsive{
+        overflow-y:auto; 
+    }
+    
+}
+
+@media screen and (min-width:768px) and (max-width: 1090px){
+        .navbar .menu-width{
+            width: 100%;
+            box-sizing: border-box;
+            padding-right:15px;
+            padding-left:15px;
+        }
+        /* 漢堡選單與頁首 */
+        .navbar-toggle{
+            display: block;
+            float: right;
+            margin-right: 0;
+        }
+        .navbar-header{
+            width: 100%;
+            border-bottom: 2px solid #fff;
+        }
+        /* 選單隱藏區 */
+        .collapsing.navbar-collapse{
+            margin-left: -15px;
+            margin-right: -15px;
+        }
+        .collapse.navbar-collapse{
+            /* padding: 0; */    
+            margin-left: -15px;
+            margin-right: -15px;
+            display: none!important;
+        }
+        .collapse.navbar-collapse.in{
+            display: block!important;
+        }
+        /* 選單項目 */
+        .navbar-nav{
+            float: none;
+        }
+        .navbar-nav.navbar-right,
+        .navbar-form.navbar-left{
+            float: none!important;
+            display: block;
+            padding: 0;
+        }
+        .nav>li {
+            position: relative;
+            display: block;
+            width: 100%;
+        }
+        .nav>li>a {
+            position: relative;
+            display: block;
+            padding: 10px 15px;
+        }
+        .navbar-nav>li>a {
+            line-height: 20px;
+        }
+        .navbar-form{
+            position: relative;
+        }
+        .navbar-form .form-group{
+            display: block;
+        }
+        .navbar-form .btn{
+            position: absolute;
+            right: 0;
+            top: 0;
+            border-radius:0 6px 6px 0; 
+        }
+        .navbar-form .form-control{
+            display: block;
+            width: 100%;
+        }
+        .navbar-default .navbar-nav>li .dropdown-menu{
+            border: 0px solid rgba(0, 0, 0, .15);
+            background-color: #ebdad8;
+            border-radius: 0px;
+            box-shadow: 0 8px 10px rgba(0, 0, 0, .175);
+            position: static;
+            float: none;
+            width: auto;
+            margin-top: 0;
+            padding-left: 20px;
+        }
+        .block-body-hg450{
+            height: 750px;
+        }
+}
+

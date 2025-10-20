@@ -1,0 +1,123 @@
+.winkler-sc-width-5{
+    width: calc(5%) !important;
+}
+
+.winkler-sc-width-10{
+    width: calc(10%) !important;
+}
+
+.winkler-sc-width-20{
+    width: calc(20%) !important;
+}
+
+.winkler-sc-width-60{
+    width: calc(60%) !important;
+}
+
+.winkler-sc-width-100{
+    width: calc(100%) !important;
+}
+
+.winkler-sc-width-auto{
+    width: auto !important;
+}
+
+.winkler-sc-center{
+    text-align: center;
+}
+
+.winkler-sc-create-form-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.winkler-sc-create-form-group {
+    flex: 1 1 calc(50% - 16px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.winkler-sc-create-form-group label {
+    flex: 0 0 40%;
+    margin-bottom: 0;
+    text-align: right;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.winkler-sc-required-indicator {
+    color: red;
+    margin-left: 4px;
+    font-weight: bold;
+}
+
+.winkler-sc-form-button-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    /* 水平居中 */
+    margin-top: 30px;
+    /* 與上方內容間隔 */
+}
+
+.winkler-sc-receipts-change-form-container {
+    width: 100%;
+    display: flex;
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直置中箭頭與輸入框 */
+    gap: 20px; /* 增加間距 */
+    margin-top: 50px;
+}
+
+.winkler-sc-receipts-change-form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 讓 label 和 input 水平對齊 */
+}
+
+.winkler-sc-receipts-change-form-group label {
+    font-size: 20px !important; /* 放大 Label 字體 */
+    font-weight: bold !important; /* 加粗，讓它更明顯 */
+    text-align: left !important;
+}
+
+.winkler-sc-receipts-change-form-group input {
+    width: 250px !important; 
+    height: 40px !important; 
+    font-size: 18px !important; /* 讓輸入框內文字變大 */
+    padding: 8px !important;
+}
+
+.winkler-sc-receipts-change-form-container i {
+    font-size: 32px; /* 放大 icon */
+    color: rgb(52, 90, 108);
+}
+
+@media print {
+    body {
+        visibility: hidden; /* 隱藏整個頁面 */
+    }
+    
+    .printable-table {
+        visibility: visible; /* 讓表格顯示 */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    table {
+        page-break-inside: auto; /* 避免表格拆成多頁 */
+    }
+    
+    th, td {
+        border: 1px solid black !important; /* 確保邊框在列印時顯示 */
+        padding: 5px;
+    }
+
+    .printable-table tfoot th {
+        border-top: 2px solid black !important; /* 確保合計行有明顯邊框 */
+    }
+}

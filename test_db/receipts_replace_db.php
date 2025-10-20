@@ -50,10 +50,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
         alert("更新原收據資料失敗: " . pg_last_error($dblink));
     }
 
-    // 準備要複製的欄位 (排除 id、receipt_num、receipt_date)
+    // 準備要複製的欄位 (排除 id、receipt_num)
     $fieldsToCopy = array(
         'receipt_entity', 'case_num', 'deb_num', 'bills_sent',
-        'legal_services', 'disbs', 'total', 'wht',
+        'receipt_date', 'legal_services', 'disbs', 'total', 'wht',
         'note_legal', 'currency', 'foreign_services',
         'foreign_disbs', 'foreign_total', 'foreign_wht',
         'note_disbs', 'create_date', 'edit_date',

@@ -1,0 +1,92 @@
+.winkler-container-nosearch-login {
+    width: 70%;
+    margin: 50px auto 30px;
+    box-sizing: border-box;
+    padding: 15px;
+    border: 1px solid #cecece;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.form-group_announcement {
+    display: flex;
+    align-items: center; /* 垂直居中对齐 */
+  }
+  
+  .control-label_announcement {
+    margin-right: 10px; /* 给 label 和 input 之间留些空间 */
+    font-weight: bold; /* 可选：让 label 更突出 */
+  }
+  
+  .Title_add_announcement {
+    padding: 10px;
+    border: solid .1px rgb(230, 96, 12);
+    border-radius: 1px;
+    background-color: #fff;
+    outline: none;
+    flex: 1; /* 让 input 占据剩余空间 */
+    max-width: 300px; /* 可选：限制 input 的最大宽度 */
+  }
+  .Content_add_announcement {
+    padding: 10px;
+    border: solid .1px rgb(230, 96, 12);
+    border-radius: 1px;
+    background-color: #fff;
+    outline: none;
+    height: 200px;
+    width: 1000px;
+  }
+  .winkler-hcw-width-30{
+    width: calc(30%) !important;
+}
+
+.block-hv100-hcw{
+  height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.block-hv100-hcw .table-responsive{
+  width: 100%;
+  flex-grow:1;    
+}
+
+.winkler-sc-width-100{
+    width: calc(100%) !important;
+}
+
+.unit-tab-all {
+    width: 100%;
+    margin: 20px auto;
+    box-sizing: border-box;
+}
+
+.unit-tab-all ul {
+    display: flex;
+    flex-wrap: wrap;              /* 多行自動換行 */
+    justify-content: center;      /* 水平置中 */
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    gap: 5px;                     /* 每個 tab 間距 */
+}
+
+.unit-tab-all ul li {
+    display: inline-block;
+}
+
+.unit-tab-all ul li a {
+    display: block;
+    padding: 8px 12px;
+    background-color: #f3d67c;
+    color: #8d6b02;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+
+.unit-tab-all ul li a:hover,
+.unit-tab-all ul li a.active {
+    background-color: #8d6b02;
+    color: #fff;
+}

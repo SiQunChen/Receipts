@@ -53,6 +53,7 @@ try {
         $case_num = urldecode($_GET['case_num'] ?? '');
         $deb_num = urldecode($_GET['invoice'] ?? '');
         $currency = urldecode($_GET['currency'] ?? 'TWD');
+        $isForeign = $currency !== 'TWD';
         $services = (float)($_GET['services'] ?? 0);
         $note_legal = urldecode($_GET['note_legal'] ?? '');
         $disbs = (float)($_GET['disbursements'] ?? 0);

@@ -193,6 +193,9 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                                         AND 
                                             ((bills.legal_services + COALESCE(show_as_legal.show_sum,0)) = receipt_sum.services_sum 
                                             OR (bills.foreign_legal2 + COALESCE(show_as_legal.foreign_show_sum,0)) = receipt_sum.foreign_services_sum))
+                        AND NOT EXISTS( SELECT 1 
+                                        FROM payments
+                                        WHERE bills.deb_num = payments.deb_num)
                         ORDER BY sent";
             } elseif ($is_paid === 'paid') {
                 $sql = "WITH receipt_sum AS (
