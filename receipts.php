@@ -686,6 +686,19 @@
                             </div>
                         </div>
 
+                        <div style="text-align: center; margin-top: 20px; font-size: 16px;">
+                            <label style="margin-right: 30px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="change_action" id="keepData" value="keep" checked 
+                                       style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
+                                保留原編號資料
+                            </label>
+                            <label style="font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="change_action" id="deleteData" value="delete" 
+                                       style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
+                                刪除原編號資料
+                            </label>
+                        </div>
+
                         <div class="winkler-sc-form-button-container">
                             <button type="submit" name="change" value="change" class="btn btn-primary">Change</button>
                         </div>
