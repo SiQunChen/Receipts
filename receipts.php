@@ -671,7 +671,7 @@
 
                 <?php elseif (isset($_POST['change'])): ?>
                     <!-- 作廢/替換畫面：顯示對應表單 -->
-                    <form method="POST" action="test_db/receipts_replace_db.php" id="change_form">
+                    <form method="POST" action="test_db/receipts_replace_db.php">
                         <div class="winkler-sc-receipts-change-form-container">
                             <div class="winkler-sc-receipts-change-form-group">
                                 <label for="invalid" class="form-label">原編號</label>
@@ -700,7 +700,7 @@
                         </div>
 
                         <div class="winkler-sc-form-button-container">
-                            <button type="submit" name="change" value="change" class="btn btn-primary">Change</button>
+                            <button type="submit" name="change" value="change" class="btn btn-primary" id="change_submit_btn">Change</button>
                         </div>
                     </form>
 
@@ -1114,37 +1114,6 @@
     <script src="receipts_ajax.js"></script>
 
     <script type="text/javascript">
-        document.addEventListener("DOMContentLoaded", function () {
-            // 1. 根據我們剛剛新增的 ID 找到 "Change" 表單
-            const changeForm = document.getElementById("change_form");
-            
-            // 2. 確保表單存在 (因為這個表單只在 'change' 畫面顯示)
-            if (changeForm) {
-                
-                // 3. 為這個表單加上 "submit" 事件監聽
-                changeForm.addEventListener("submit", function (event) {
-                    
-                    // 4. 找到 "刪除" 選項的 radio button
-                    const deleteRadio = document.getElementById("deleteData");
-                    
-                    // 5. 檢查 "刪除" 選項是否被勾選
-                    if (deleteRadio && deleteRadio.checked) {
-                        
-                        // 6. 如果已勾選，跳出確認視窗
-                        const confirmed = confirm("您確定要刪除原編號資料嗎？");
-                        
-                        // 7. 如果使用者按下 "取消" (confirmed 會是 false)
-                        if (!confirmed) {
-                            event.preventDefault(); // 中止表單的提交動作
-                        }
-                        // 如果使用者按下 "確定"，則表單會正常提交
-                    }
-                });
-            }
-        });
-    </script>
-
-    <script type="text/javascript">
         $('nav').affix({
             offset: {
                 top: 50,
@@ -1158,6 +1127,31 @@
         $(document).on('hidden.bs.modal', function (e) {
             $(e.target).removeData('bs.modal');
         });
+
+        // ======== 您需要新增的程式碼在這裡 ========
+        // 使用 jQuery 的 document ready 函數
+        $(document).ready(function() {
+            
+            // 1. 透過 ID 找到 "Change" 按鈕
+            $('#change_submit_btn').on('click', function(event) {
+                
+                // 2. 檢查 "刪除" 選項 (ID: deleteData) 是否被勾選
+                if ($('#deleteData').is(':checked')) {
+                    
+                    // 3. 如果勾選了，跳出確認視窗
+                    var confirmed = confirm("您確定要刪除原編號資料嗎？");
+                    
+                    // 4. 如果使用者按下 "取消" (confirmed 為 false)
+                    if (!confirmed) {
+                        // 停止點擊事件的預設行為 (即停止表單提交)
+                        event.preventDefault(); 
+                    }
+                }
+                // 如果是 "保留" 或使用者按下 "確定"，點擊事件會正常觸發，表單會提交
+            });
+        });
+        // ======== 新增程式碼結束 ========
+
     </script>
 </body>
 
