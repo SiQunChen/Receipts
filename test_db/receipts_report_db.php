@@ -23,8 +23,6 @@ register_shutdown_function(function () {
     }
 });
 
-use TCPDF;
-
 try {
     // 取得表單欄位
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

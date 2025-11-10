@@ -58,16 +58,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
         }
     }
     
-    // --- 【修改】取得替換收據資料 (供後續交換使用) ---
+    // --- 取得替換收據資料 (供後續交換使用) ---
     $queryReplacement = "SELECT * FROM receipt WHERE receipt_num = '" . pg_escape_string($replacement) . "' LIMIT 1";
     $resultReplacement = pg_query($dblink, $queryReplacement); // 執行查詢
     if (!$resultReplacement || pg_num_rows($resultReplacement) == 0) {
         pg_query($dblink, "ROLLBACK");
         alert("找不到替換編號 ($replacement)");
     }
-    // 【新增】將替換編號的資料存起來
     $replacementData = pg_fetch_assoc($resultReplacement);
-    // 【新增】取得替換編號的 ID
     $replacement_record_id = intval($replacementData['id']);
 
     // 準備要複製的欄位 (排除 id、receipt_num、receipt_date)
@@ -79,6 +77,78 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
         'note_disbs', 'create_date', 'edit_date',
         'currency_status'
     );
+
+    // ==================================================================
+    // --- 【步驟 0.5 - 新增】處理 receipt_disbs (代墊資料) ---
+    // ==================================================================
+    $escapedInvalidNum = pg_escape_string($invalid);
+    $escapedReplacementNum = pg_escape_string($replacement);
+    
+    if ($change_action === 'delete') {
+        // --- 刪除模式 ---
+        
+        // 1. 刪除 'replacement' (替換編號) 原有的代墊資料
+        //    (因為替換編號的 receipt 紀錄將被 原編號 的資料覆蓋)
+        $queryDeleteDisbs = "DELETE FROM receipt_disbs WHERE receipt_num = '$escapedReplacementNum'";
+        $resultDeleteDisbs = pg_query($dblink, $queryDeleteDisbs);
+        if (!$resultDeleteDisbs) {
+            pg_query($dblink, "ROLLBACK");
+            alert("刪除替換收據 ($replacement) 的代墊資料失敗: " . pg_last_error($dblink));
+        }
+
+        // 2. 將 'invalid' (原編號) 的代墊資料轉移給 'replacement' (替換編號)
+        //    (因為 原編號 的 receipt 紀錄將被刪除)
+        $queryUpdateDisbs = "UPDATE receipt_disbs SET receipt_num = '$escapedReplacementNum' WHERE receipt_num = '$escapedInvalidNum'";
+        $resultUpdateDisbs = pg_query($dblink, $queryUpdateDisbs);
+        if (!$resultUpdateDisbs) {
+            pg_query($dblink, "ROLLBACK");
+            alert("轉移原收據 ($invalid) 的代墊資料失敗: " . pg_last_error($dblink));
+        }
+    } else {
+        // --- 保留模式 (交換) ---
+        // (因為 receipt 紀錄的 *內容* 交換了, 所以 receipt_disbs 也要跟著交換)
+        
+        // 【修改】定義一個臨時的、唯一的編號 (長度必須 <= 15)
+        // 使用一個幾乎不可能重複的固定字串
+        $tempSwapValue = pg_escape_string('___TEMP_SWAP___'); // 剛好 15 個字元
+
+        // 1. 將 'invalid' (原編號) 的代墊資料暫時標記
+        $queryTempUpdate = "UPDATE receipt_disbs SET receipt_num = '$tempSwapValue' WHERE receipt_num = '$escapedInvalidNum'";
+        $resultTempUpdate = pg_query($dblink, $queryTempUpdate);
+        if (!$resultTempUpdate) {
+            pg_query($dblink, "ROLLBACK");
+            // 【修改】提供更精確的錯誤訊息
+            alert("交換代墊資料失敗 (步驟1): " . pg_last_error($dblink));
+        }
+        $count1 = pg_affected_rows($resultTempUpdate); // 記錄影響的行數
+
+        // 2. 將 'replacement' (替換編號) 的代墊資料指派給 'invalid' (原編號)
+        $querySwapToInvalid = "UPDATE receipt_disbs SET receipt_num = '$escapedInvalidNum' WHERE receipt_num = '$escapedReplacementNum'";
+        $resultSwapToInvalid = pg_query($dblink, $querySwapToInvalid);
+        if (!$resultSwapToInvalid) {
+            pg_query($dblink, "ROLLBACK");
+            alert("交換代墊資料失敗 (步驟2): " . pg_last_error($dblink));
+        }
+
+        // 3. 將暫時標記的資料 (原 invalid 的) 指派給 'replacement' (替換編號)
+        $querySwapToReplacement = "UPDATE receipt_disbs SET receipt_num = '$escapedReplacementNum' WHERE receipt_num = '$tempSwapValue'";
+        $resultSwapToReplacement = pg_query($dblink, $querySwapToReplacement);
+        if (!$resultSwapToReplacement) {
+            pg_query($dblink, "ROLLBACK");
+            alert("交換代墊資料失敗 (步驟3): " . pg_last_error($dblink));
+        }
+        $count3 = pg_affected_rows($resultSwapToReplacement); // 記錄影響的行數
+
+        // 檢查行數是否匹配，確保交換的資料筆數一致
+        if ($count1 != $count3) {
+             pg_query($dblink, "ROLLBACK");
+             alert("交換代墊資料失敗 (步驟3 - 行數不匹配: $count1 vs $count3)。交易已回滾。");
+        }
+    }
+    // ==================================================================
+    // --- 結束 receipt_disbs 處理 ---
+    // ==================================================================
+
 
     // --- 【步驟 1】將 '原編號' 資料更新到 '替換編號' 紀錄中 ---
     $setClausesReplacement = [];
@@ -129,7 +199,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
         }
 
     } else {
-        // --- 【修改】保留模式 (交換資料並作廢) ---
+        // --- 保留模式 (交換資料並作廢) ---
         
         // 1. 準備 '替換編號' 的資料
         $setClausesInvalid = [];
@@ -155,7 +225,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
     // 提交交易
     pg_query($dblink, "COMMIT");
 
-    // 【修改】根據操作顯示不同的成功訊息
     $message = ($change_action === 'delete') ? "資料轉換並刪除成功" : "資料轉換成功";
     alert($message);
 
