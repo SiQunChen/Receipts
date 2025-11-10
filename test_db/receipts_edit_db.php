@@ -46,7 +46,7 @@ function invalid($dataArray, $selectedData) {
 }
 
 // 處理 POST 請求
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 確保 session 存在

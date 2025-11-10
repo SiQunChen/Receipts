@@ -70,10 +70,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
     // 【新增】取得替換編號的 ID
     $replacement_record_id = intval($replacementData['id']);
 
-    // --- 準備要複製的欄位 (排除 id、receipt_num) ---
+    // 準備要複製的欄位 (排除 id、receipt_num、receipt_date)
     $fieldsToCopy = array(
         'receipt_entity', 'case_num', 'deb_num', 'bills_sent',
-        'receipt_date', 'legal_services', 'disbs', 'total', 'wht',
+        'legal_services', 'disbs', 'total', 'wht',
         'note_legal', 'currency', 'foreign_services',
         'foreign_disbs', 'foreign_total', 'foreign_wht',
         'note_disbs', 'create_date', 'edit_date',

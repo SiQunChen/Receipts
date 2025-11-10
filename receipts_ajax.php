@@ -1,6 +1,6 @@
 <?php
 session_start();
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (isset($_SESSION['dataArray'])) {
     // 取得Session中儲存的資料

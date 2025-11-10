@@ -14,7 +14,7 @@ require_once 'receipts_list_db.php';
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null) {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'message' => 'Fatal Error: ' . $error['message'],
             'file' => $error['file'],
@@ -477,7 +477,7 @@ try {
     $pdf->Output($filename, 'D');
     exit;
 } catch (Exception $e) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['message' => '❗ 產生報表失敗：' . $e->getMessage()]);
 }
 ?>

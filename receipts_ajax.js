@@ -53,9 +53,9 @@ function updateTable(dataArray) {
                 } else {
                     wht = '0.00';
                 }
-                services = services.toFixed(2).toLocaleString();
-                disbs = disbs.toFixed(2).toLocaleString();
-                total = total.toFixed(2).toLocaleString();
+                services = (parseFloat(services) || 0).toFixed(2).toLocaleString();
+                disbs = (parseFloat(disbs) || 0).toFixed(2).toLocaleString();
+                total = (parseFloat(total) || 0).toFixed(2).toLocaleString();
             } else {
                 currency = 'TWD';
                 if (data.wht_status === '1') {
@@ -64,9 +64,9 @@ function updateTable(dataArray) {
                 } else {
                     wht = 0;
                 }
-                services = services.toLocaleString();
-                disbs = disbs.toLocaleString();
-                total = total.toLocaleString();
+                services = (parseFloat(services) || 0).toLocaleString();
+                disbs = (parseFloat(disbs) || 0).toLocaleString();
+                total = (parseFloat(total) || 0).toLocaleString();
             }
         } else {
             entity = data.party_en_name_bills;

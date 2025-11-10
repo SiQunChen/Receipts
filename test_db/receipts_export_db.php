@@ -1,6 +1,6 @@
 <?php
 session_start();
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -9,7 +9,7 @@ error_reporting(E_ALL);
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error !== null) {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'message' => 'Fatal Error: ' . $error['message'],
             'file' => $error['file'],
