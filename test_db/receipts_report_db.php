@@ -79,6 +79,9 @@ try {
         $note_legal = $selectedData['note_legal'];
         $note_disbs = $selectedData['note_disbs'];
         $wht = (float)str_replace(',', '', $selectedData['wht']);
+
+        // 判斷是否為申請單號資料
+        $is_split = isset($session_data['split_entity']) && $session_data['split_entity'] !== null;
    
         ### 判斷幣別
         // unpaid 屬於外幣的情況
@@ -105,15 +108,19 @@ try {
         } else {
             if ($isForeign) {
                 $currency = $session_data['currency2'];
-                $services = $session_data['foreign_legal2'];
+                $services = $is_split ? $session_data['split_legal_services'] : $session_data['foreign_legal2'];
             } else {
                 $currency = 'TWD';
-                $services = $session_data['legal_services'];
+                $services = $is_split ? $session_data['split_legal_services'] : $session_data['legal_services'];
             }
         }
 
         ### 取得代墊金額
-        if ($isMerged) {
+        if ($is_split) {
+            $official_fee = 0;
+            $other_fee = 0;
+            $disbs = $session_data['split_disbs'];
+        } elseif ($isMerged) {
             $official_fee = 0;
             $other_fee = 0;
 
@@ -187,7 +194,7 @@ try {
         $receipt_date = date('Y/n/j');
         $receipt_tax_id = $session_data['receipt_tax_id'];
         $case_num = $session_data['case_num'];
-        $deb_num = $session_data['deb_num'];
+        $deb_num = $session_data['deb_num'] . ($session_data['deb_extra'] ?? '');
         $note_legal = $selectedData['note_legal'];
         $note_disbs = $selectedData['note_disbs'];
 

@@ -27,7 +27,9 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         SELECT 
                             deb_num,
                             SUM(disbs) AS disbs_sum,
-                            SUM(foreign_disbs) AS foreign_disbs_sum
+                            SUM(foreign_disbs) AS foreign_disbs_sum,
+                            SUM(legal_services) AS services_sum,
+                            SUM(foreign_services) AS foreign_services_sum
                         FROM receipt
                         GROUP BY deb_num
                     ), 
@@ -48,10 +50,6 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         bills.party_en_name_bills,
                         bills.billing_currency,
                         bills.deb_num,
-                        bills.legal_services + COALESCE(show_as_legal.show_sum,0) AS legal_services, 
-                        bills.disbs - COALESCE(show_as_legal.show_sum,0) AS disbs, 
-                        bills.foreign_legal2 + COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_legal2, 
-                        bills.foreign_disbs2 - COALESCE(show_as_legal.foreign_show_sum,0) AS foreign_disbs2,
                         bills.total,
                         bills.foreign_total2,
                         bills.currency2,
@@ -73,8 +71,9 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         AND NOT EXISTS( SELECT 1 
                                         FROM receipt_sum 
                                         WHERE bills.deb_num=receipt_sum.deb_num 
-                                        AND bills.disbs = receipt_sum.disbs_sum
-                                        AND bills.foreign_disbs2 = receipt_sum.foreign_disbs_sum)
+                                        AND (receipt_sec_deb.split_disbs = receipt_sum.disbs_sum OR receipt_sec_deb.split_disbs = receipt_sum.foreign_disbs_sum)
+                                        AND (receipt_sec_deb.split_legal_services = receipt_sum.services_sum OR receipt_sec_deb.split_legal_services = receipt_sum.foreign_services_sum)
+                                        )
                         ORDER BY sent";
         } else {
             // case_num 條件
@@ -215,6 +214,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                             bills.party_en_name_bills,
                             bills.deb_num,
                             bills.sent,
+                            payments.id AS payments_id,
                             payments.method,
                             payments.with_tax,
                             payments.holding_tax,
@@ -298,6 +298,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         receipt.foreign_wht,
                         receipt.note_disbs,
                         receipt.status,
+                        receipt.deb_extra,
                         bills.bills_case_manager,
                         cases.receipt_tax_id,
                         ROW_NUMBER() OVER(PARTITION BY receipt.receipt_num ORDER BY receipt.deb_num ASC) as rn
@@ -321,6 +322,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                     MAX(CASE WHEN rn = 1 THEN currency END) AS currency,
                     MAX(CASE WHEN rn = 1 THEN note_disbs END) AS note_disbs,
                     MAX(CASE WHEN rn = 1 THEN status END) AS status,
+                    MAX(CASE WHEN rn = 1 THEN deb_extra END) AS deb_extra,
                     MAX(CASE WHEN rn = 1 THEN bills_case_manager END) AS bills_case_manager,
                     MAX(CASE WHEN rn = 1 THEN receipt_tax_id END) AS receipt_tax_id,
 

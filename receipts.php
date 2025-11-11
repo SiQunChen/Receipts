@@ -649,7 +649,7 @@
                                             <textarea name='receipt_entity[$i]' rows='3'>$receipt_entity</textarea>
                                         </td>
                                         <td class='text-left'>{$data['case_num']}</td>
-                                        <td class='text-center'>{$data['deb_num']}</td>
+                                        <td class='text-center'>{$data['deb_num']}{$data['deb_extra']}</td>
                                         <td class='text-right' style='max-width: 150px'>
                                             $legal_services<br>
                                             <input type='text' name='note_legal[$i]' $note_legal style='width: calc(100%)'>

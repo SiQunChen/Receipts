@@ -42,7 +42,7 @@ function isForeignCurrency($data, $is_paid): bool {
     return (!$is_paid && $isEnglishCurrency) || ($is_paid && $hasForeignValues);
 }
 
-function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, $legal_services, $disbs, $wht, $note_legal, $is_foreign, $currency, $foreign_services, $foreign_disbs, $note_disbs, $uncheckedDisbsData, $receipt_num, $is_paid) {
+function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, $legal_services, $disbs, $wht, $note_legal, $is_foreign, $currency, $foreign_services, $foreign_disbs, $note_disbs, $uncheckedDisbsData, $receipt_num, $is_paid, $deb_extra, $payments_id, $is_split) {
     global $dblink;
     if (!$dblink) {
         throw new Exception("無法連接到資料庫");
@@ -51,7 +51,7 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
     // 根據幣別決定要存入的欄位
     if ($is_foreign) {
         // 部分銷帳
-        if (isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
+        if (!$is_split && isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
             foreach ($uncheckedDisbsData[$deb_num] as $data) {
                 $foreign_disbs -= $data['foreign_amount'];
             }
@@ -63,15 +63,15 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
         $query = "INSERT INTO receipt (
                     receipt_entity, case_num, deb_num, bills_sent, receipt_num, receipt_date,
                     legal_services, disbs, total, wht, currency, foreign_services, foreign_disbs, 
-                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status
+                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2, $deb_extra];
     } else {
         // 部分銷帳
-        if (isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
+        if (!$is_split && isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
             foreach ($uncheckedDisbsData[$deb_num] as $data) {
                 $disbs -= $data['amount'];
             }
@@ -83,12 +83,12 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
         $query = "INSERT INTO receipt (
                     receipt_entity, case_num, deb_num, bills_sent, receipt_num, receipt_date,
                     legal_services, disbs, total, wht, foreign_services, foreign_disbs,
-                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status
+                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1, $deb_extra];
     }
 
     $res = pg_query_params($dblink, $query, $params);
@@ -97,15 +97,19 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
     }
 
     // 插入 receipt_disbs
-    recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid);
+    recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split);
     
     return true;
 }
 
-function recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid) {
+function recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split) {
     global $dblink;
     if (!$dblink) {
         throw new Exception("無法連接到資料庫");
+    }
+
+    if ($is_split) {
+        return true;
     }
 
     $results = getReceiptsDetail($is_paid, $deb_num);
@@ -186,26 +190,63 @@ try {
         // 取得收據號碼
         $receipt_num_raw = $data['receiptNum'] ?? 1;
 
+        // 取得 payments_id
+        $payments_id = $session_data['payments_id'] ?? 0;
+
         // 執行 list
         if ($type === 'list') {
+            // 判斷是否為申請單號資料
+            $is_split = isset($session_data['split_entity']) && $session_data['split_entity'] !== null;
+            $is_foreign = isForeignCurrency($session_data, $is_paid === 'true');
+
+            // 根據是否為 split 決定 services 和 disbs
+            if ($is_split) {
+                if ($is_foreign) {
+                    $legal_services = 0;
+                    $disbs = 0;
+                    $foreign_services = (float)$session_data['split_legal_services']; 
+                    $foreign_disbs = (float)$session_data['split_disbs'];  
+                } else {
+                    $legal_services = (float)$session_data['split_legal_services']; 
+                    $disbs = (float)$session_data['split_disbs'];  
+                    $foreign_services = 0;
+                    $foreign_disbs = 0;
+                }
+            } else {
+                if ($is_foreign) {
+                    $legal_services = 0;
+                    $disbs = 0;
+                    $foreign_services = (float)$session_data['foreign_legal2'];
+                    $foreign_disbs = (float)$session_data['foreign_disbs2'];
+                } else {
+                    $legal_services = (float)$session_data['legal_services'];
+                    $disbs = (float)$session_data['disbs'];
+                    $foreign_services = 0;
+                    $foreign_disbs = 0;
+                }
+            }
+
             $success = recordReceiptTable(
                 $data['selectedData']['entity'],
                 $session_data['case_num'],
                 $session_data['deb_num'],
                 $session_data['sent'],
                 $_POST['receiptDate'] ?? date('Y-m-d'),
-                (float)$session_data['legal_services'],
-                (float)$session_data['disbs'],
+                $legal_services, 
+                $disbs,   
                 (float)(str_replace(',', '', $data['selectedData']['wht'])),
                 $data['selectedData']['note_legal'],
-                isForeignCurrency($session_data, $is_paid === 'true'),
+                $is_foreign, 
                 $session_data['currency2'],
-                $session_data['foreign_legal2'],
-                $session_data['foreign_disbs2'],
+                $foreign_services, 
+                $foreign_disbs,   
                 $data['selectedData']['note_disbs'],
                 $uncheckedDisbsData,
                 $data['receiptNum'],
-                $is_paid
+                $is_paid,
+                $session_data['split_deb_num'] ?? null,
+                (float)$payments_id,
+                $is_split  
             );
         } elseif ($type === 'edit') { // 執行 edit
             $success = updateReceiptTable(

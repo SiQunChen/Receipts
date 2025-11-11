@@ -41,7 +41,7 @@ function updateTable(dataArray) {
             deb_num = `${data.deb_num}${data.split_deb_num}`;
             services = data.split_legal_services;
             disbs = data.split_disbs;
-            total = services + disbs;
+            total = Number(services) + Number(disbs);
 
             if (data.billing_currency === 'English (USD)' || data.billing_currency === 'English (EUR)') {
                 currency = data.currency2;
@@ -53,9 +53,9 @@ function updateTable(dataArray) {
                 } else {
                     wht = '0.00';
                 }
-                services = (parseFloat(services) || 0).toFixed(2).toLocaleString();
-                disbs = (parseFloat(disbs) || 0).toFixed(2).toLocaleString();
-                total = (parseFloat(total) || 0).toFixed(2).toLocaleString();
+                services = (Number(services) || 0).toFixed(2).toLocaleString();
+                disbs = (Number(disbs) || 0).toFixed(2).toLocaleString();
+                total = (Number(total) || 0).toFixed(2).toLocaleString();
             } else {
                 currency = 'TWD';
                 if (data.wht_status === '1') {
@@ -64,9 +64,9 @@ function updateTable(dataArray) {
                 } else {
                     wht = 0;
                 }
-                services = (parseFloat(services) || 0).toLocaleString();
-                disbs = (parseFloat(disbs) || 0).toLocaleString();
-                total = (parseFloat(total) || 0).toLocaleString();
+                services = (Number(services) || 0).toLocaleString();
+                disbs = (Number(disbs) || 0).toLocaleString();
+                total = (Number(total) || 0).toLocaleString();
             }
         } else {
             entity = data.party_en_name_bills;
