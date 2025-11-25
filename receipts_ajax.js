@@ -29,7 +29,8 @@ function updateTable(dataArray) {
     let is_paid = ('billing_currency' in (dataArray[0])) ? false : true;
 
     dataArray.forEach((data, index) => {
-        let entity, deb_num, services, disbs, total, currency, wht;
+        let entity, deb_num, services, disbs, total, currency, wht, show_as_legal_services, show_as_legal_disbs;
+        let payments_id = data.payments_id || '';
         let uncheckedId = [];
         let redColor = '';
         let disable = '';
@@ -100,6 +101,10 @@ function updateTable(dataArray) {
                     total -= totalUncheckedValue;
                 }
 
+                // 計算 show_as_legal_services 和 show_as_legal_disbs
+                show_as_legal_services = (services + Number(data.show_as_legal_foreign_sum)).toFixed(2).toLocaleString();
+                show_as_legal_disbs = (disbs - Number(data.show_as_legal_foreign_sum)).toFixed(2).toLocaleString();
+
                 // 計算 wht
                 if (!is_paid) {
                     if (data.wht_status === '1') {
@@ -134,6 +139,10 @@ function updateTable(dataArray) {
                     total -= totalUncheckedValue;    
                 }
 
+                // 計算 show_as_legal_services 和 show_as_legal_disbs
+                show_as_legal_services = (services + Number(data.show_as_legal_sum)).toLocaleString();
+                show_as_legal_disbs = (disbs - Number(data.show_as_legal_sum)).toLocaleString();
+
                 // 計算 wht
                 if (!is_paid) {
                     if (data.wht_status === '1') {
@@ -163,7 +172,7 @@ function updateTable(dataArray) {
                     <input type='checkbox' name='row_check_box[${index}]' value='${index}' style='width: calc(100%)'>
                 </td>
                 <td class='text-center'>
-                    <a href='receipts_detail.php?is_paid=${is_paid}&deb_num=${deb_num}&currency=${currency}&id=${uncheckedId.join(',')}' class='btn-sm btn-info btn-r15' ${disable} data-toggle='modal' data-target='#modal-id'>
+                    <a href='receipts_detail.php?is_paid=${is_paid}&payment_id=${payments_id}&deb_num=${deb_num}&currency=${currency}&id=${uncheckedId.join(',')}' class='btn-sm btn-info btn-r15' ${disable} data-toggle='modal' data-target='#modal-id'>
                         <i class='glyphicon glyphicon-th-list'></i>
                     </a>
                 </td>
@@ -174,10 +183,12 @@ function updateTable(dataArray) {
                 <td class='text-center'>${deb_num}</td>
                 <td class='text-right' style='max-width: 150px'>
                     <span ${redColor}>${services}</span>
+                    ${show_as_legal_services != services ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_services})</span>` : ''}
                     <input type='text' name='note_legal[${index}]' style='width: calc(100%)'>
                 </td>
                 <td class='text-right' style='max-width: 150px'>
                     <span ${redColor}>${disbs}</span>
+                    ${show_as_legal_disbs != disbs ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_disbs})</span>` : ''}
                     <input type='text' name='note_disbs[${index}]' style='width: calc(100%)'>
                 </td>
                 <td class='text-right'>

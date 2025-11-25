@@ -14,7 +14,7 @@
 
                 <?php
                 require_once('test_db/receipts_list_db.php');
-                $results = getReceiptsDetail($_GET['is_paid'], $_GET['deb_num']);
+                $results = getReceiptsDetail($_GET['is_paid'], $_GET['payment_id'], $_GET['deb_num']);
                 // print_r($results);
                 ?>
 
@@ -68,21 +68,35 @@
                                             $checked = 'checked';
                                         }
 
-                                        // 處理外幣
-                                        $foreign_amount = round($result['foreign_amount2'], 2);
+                                        // 如果是台幣，不顯示幣別、外幣金額
+                                        if ($_GET['currency'] == 'TWD') {
+                                            $currency = '';
+                                            $foreign_amount = '';
+                                        } else {
+                                            $currency = $result['currency2'];
+                                            $foreign_amount = number_format(round($result['foreign_amount2'], 2), 2);
+                                        }
 
                                         // 決定表格行的 class
                                         $row_class = ($color == 0) ? "" : "class='th-gary'";
 
+                                        // 如果 data 的 show_as_legal_service_flag 是 1，不顯示 chechkbox 並反白
+                                        if ($result['show_as_legal_service_flag'] == '1') {
+                                            $checkbox_html = "";
+                                            $row_class = "style='background-color: #e0e0e0; color: #999;'";
+                                        } else {
+                                            $checkbox_html = "<input type='checkbox' name='detail_row_check_box[]' value='{$result['id']},{$result['ntd_amount']},{$foreign_amount}' $checked>";
+                                        }
+
                                         // 輸出表格行
                                         echo "<tr $row_class>
-                                                <td class='text-center'><input type='checkbox' name='detail_row_check_box[]' value='{$result['id']},{$result['ntd_amount']},{$foreign_amount}' $checked></td>
+                                                <td class='text-center'>$checkbox_html</td>
                                                 <td>{$result['case_num']}</td>
                                                 <td>{$result['date']}</td>
                                                 <td>{$result['disb_name']}</td>
                                                 <td class='td-lindent5'>" . number_format($result['ntd_amount']) . "</td>
-                                                <td>{$result['currency2']}</td>
-                                                <td class='td-lindent5'>" . number_format($foreign_amount, 2) . "</td>
+                                                <td>{$currency}</td>
+                                                <td class='td-lindent5'>{$foreign_amount}</td>
                                             </tr>";
 
                                         // 切換顏色

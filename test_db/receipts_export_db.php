@@ -63,12 +63,12 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
         $query = "INSERT INTO receipt (
                     receipt_entity, case_num, deb_num, bills_sent, receipt_num, receipt_date,
                     legal_services, disbs, total, wht, currency, foreign_services, foreign_disbs, 
-                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra
+                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra, payments_id
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2, $deb_extra];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, 0, 0, 0, 0, $currency, $foreign_services, $foreign_disbs, $foreign_total, $wht, $note_legal, $note_disbs, 2, $deb_extra, $payments_id];
     } else {
         // 部分銷帳
         if (!$is_split && isset($uncheckedDisbsData[$deb_num]) && is_array($uncheckedDisbsData[$deb_num])) {
@@ -83,12 +83,12 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
         $query = "INSERT INTO receipt (
                     receipt_entity, case_num, deb_num, bills_sent, receipt_num, receipt_date,
                     legal_services, disbs, total, wht, foreign_services, foreign_disbs,
-                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra
+                    foreign_total, foreign_wht, note_legal, note_disbs, currency_status, deb_extra, payments_id
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
                 )";
 
-        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1, $deb_extra];
+        $params = [$entity, $case_num, $deb_num, $sent, $receipt_num, $receipt_date, $legal_services, $disbs, $total, $wht, 0, 0, 0, 0, $note_legal, $note_disbs, 1, $deb_extra, $payments_id];
     }
 
     $res = pg_query_params($dblink, $query, $params);
@@ -97,12 +97,12 @@ function recordReceiptTable($entity, $case_num, $deb_num, $sent, $receipt_date, 
     }
 
     // 插入 receipt_disbs
-    recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split);
+    recordReceiptDisbsTable($payments_id, $deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split);
     
     return true;
 }
 
-function recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split) {
+function recordReceiptDisbsTable($payments_id, $deb_num, $receipt_num, $uncheckedDisbsData, $is_paid, $is_split) {
     global $dblink;
     if (!$dblink) {
         throw new Exception("無法連接到資料庫");
@@ -112,7 +112,7 @@ function recordReceiptDisbsTable($deb_num, $receipt_num, $uncheckedDisbsData, $i
         return true;
     }
 
-    $results = getReceiptsDetail($is_paid, $deb_num);
+    $results = getReceiptsDetail($is_paid, $payments_id, $deb_num);
 
     if ($is_paid === 'true') {
         $insertQuery = "INSERT INTO receipt_disbs (disbs_pay_id, table_name, receipt_num) 

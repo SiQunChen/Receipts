@@ -127,7 +127,7 @@ try {
             // 遍歷所有 session 中的資料項目
             foreach ($indexList as $i) {
                 // 1. 取得該筆項目所有的代墊明細
-                $disbsDataArray = getReceiptsDetail($is_paid, $_SESSION['dataArray'][$i]['deb_num']);
+                $disbsDataArray = getReceiptsDetail($is_paid, $_SESSION['dataArray'][$i]['payments_id'], $_SESSION['dataArray'][$i]['deb_num']);
                 
                 // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
                 $uncheckedIds = array_column($uncheckedDisbsData[$deb_num] ?? [], 'id');
@@ -158,7 +158,7 @@ try {
             $other_fee = 0;
             
             // 1. 取得該筆項目所有的代墊明細
-            $disbsDataArray = getReceiptsDetail($is_paid, $session_data['deb_num']);
+            $disbsDataArray = getReceiptsDetail($is_paid, $session_data['payments_id'], $session_data['deb_num']);
             
             // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
             $uncheckedIds = array_column($uncheckedDisbsData[$session_data['deb_num']] ?? [], 'id');
@@ -199,7 +199,7 @@ try {
         $note_disbs = $selectedData['note_disbs'];
 
         // 取得該筆所有代墊資料
-        $disbsDataArray = getReceiptsDetail(null, null, $receipt_num);
+        $disbsDataArray = getReceiptsDetail(null, 0, null, $receipt_num);
 
         // 判斷幣別
         $currency = $session_data['currency'];
@@ -268,7 +268,7 @@ try {
 
     // 計算從哪邊開始靠右
     $rightMargin = 24; // 右邊邊界
-    $totalWidth = 54; // 每行兩個 Cell 的總寬度 = 24 + 30
+    $totalWidth = 58; // 每行兩個 Cell 的總寬度 = 24 + 34
     $rightStartX = $pdf->getPageWidth() - $rightMargin - $totalWidth;
 
     // ======================================================
@@ -312,22 +312,22 @@ try {
     // --- 第 1 列 (右) ---
     $pdf->SetXY($rightStartX, $startY); // 跳到第一列的 Y 座標
     $pdf->Cell(24, $lineHeight, '收據號碼：', 0, 0);
-    $pdf->Cell(30, $lineHeight, $receipt_num, 'B', 0);
+    $pdf->Cell(34, $lineHeight, $receipt_num, 'B', 0);
 
     // --- 第 2 列 (右) ---
     $pdf->SetXY($rightStartX, $startY + $lineHeight); // 跳到第二列的 Y 座標
     $pdf->Cell(24, $lineHeight, '日　　期：', 0, 0);
-    $pdf->Cell(30, $lineHeight, (new DateTime($receipt_date))->format('Y/n/j'), 'B', 0);
+    $pdf->Cell(34, $lineHeight, (new DateTime($receipt_date))->format('Y/n/j'), 'B', 0);
 
     // --- 第 3 列 (右) ---
     $pdf->SetXY($rightStartX, $startY + 2 * $lineHeight); // 跳到第三列的 Y 座標
     $pdf->Cell(24, $lineHeight, '本所案號：', 0, 0);
-    $pdf->Cell(30, $lineHeight, $case_num, 'B', 0);
+    $pdf->Cell(34, $lineHeight, $case_num, 'B', 0);
 
     // --- 第 4 列 (右) ---
     $pdf->SetXY($rightStartX, $startY + 3 * $lineHeight); // 跳到第四列的 Y 座標
     $pdf->Cell(24, $lineHeight, '帳單號碼：', 0, 0);
-    $pdf->Cell(30, $lineHeight, $deb_num, 'B', 0);
+    $pdf->Cell(34, $lineHeight, $deb_num, 'B', 0);
 
 
     // --- 收尾 ---

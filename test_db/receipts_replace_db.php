@@ -75,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['change']) && $_POST['c
         'note_legal', 'currency', 'foreign_services',
         'foreign_disbs', 'foreign_total', 'foreign_wht',
         'note_disbs', 'create_date', 'edit_date',
-        'currency_status'
+        'currency_status', 'deb_extra', 'payments_id'
     );
 
     // ==================================================================

@@ -643,6 +643,7 @@
                                     <tr>
                                         <td class='text-center'>
                                             <input type='checkbox' name='row_check_box[$i]' value='$i' style='width: calc(100%)'>
+                                            <input type='hidden' name='payments_id[$i]' value='{$data['payments_id']}'>
                                         </td>
                                         <td class='text-left'>{$data['receipt_num']}</td>
                                         <td class='text-left'>
@@ -814,7 +815,7 @@
                         // 根據類型取得不同欄位
                         const fieldNames = type === 'list' 
                             ? ['party_en_name_bills', 'note_legal', 'note_disbs', 'wht']
-                            : ['receipt_entity', 'note_legal', 'note_disbs'];
+                            : ['receipt_entity', 'note_legal', 'note_disbs', 'payments_id'];
 
                         fieldNames.forEach(field => {
                             const element = row.querySelector(
@@ -973,7 +974,7 @@
                         formData.append("isMerged", true);
                         formData.append("indexList", JSON.stringify(indexList)); 
                         formData.append("uncheckedDisbsData", uncheckedDisbsData);
-                        formData.append("ispaid", isMergeExist ? "true" : "false");
+                        formData.append("ispaid", "true");
                         formData.append("receiptNum", `R${receipt_year}${receipt_month}${receiptNum.toString().padStart(4, '0')}`);
                         if (receipt_date) formData.append("receiptDate", receipt_date);
                         
@@ -991,6 +992,8 @@
                                 let currentReceiptNum = receiptNum + i;
                                 formData.append("receiptNum", `R${receipt_year}${receipt_month}${currentReceiptNum.toString().padStart(4, '0')}`);
                                 if (receipt_date) formData.append("receiptDate", receipt_date);
+                            } else {
+                                formData.append("ispaid", selectedRowsData[i]['payments_id'] == 0 ? "false" : "true");
                             }
 
                             await downloadFile(CONFIG.URLS.PDF, formData);
