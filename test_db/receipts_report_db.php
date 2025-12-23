@@ -129,7 +129,8 @@ try {
                 $disbsDataArray = getReceiptsDetail($is_paid, $_SESSION['dataArray'][$i]['payments_id'], $_SESSION['dataArray'][$i]['deb_num']);
 
                 // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
-                $uncheckedIds = array_column($uncheckedDisbsData[$deb_num] ?? [], 'id');
+                $current_deb_num = $_SESSION['dataArray'][$i]['deb_num']; // 取得當前迴圈項目的 deb_num
+                $uncheckedIds = array_column($uncheckedDisbsData[$current_deb_num] ?? [], 'id');
 
                 // 3. 遍歷該筆項目的代墊明細
                 foreach ($disbsDataArray as $disbs_data) {
