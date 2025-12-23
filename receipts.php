@@ -156,7 +156,7 @@
             </div>
 
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
+                document.addEventListener('DOMContentLoaded', function() {
                     const unpaidFields = document.getElementById('unpaidFields');
                     const paidFields = document.getElementById('paidFields');
                     const paidRadios = document.querySelectorAll('input[name="is_paid"]');
@@ -212,8 +212,7 @@
                     require_once('test_db/receipts_create_db.php');
 
                     // 顯示提示並跳轉函數
-                    function showAlertAndRedirect($message, $url = 'http://slashlaw-new/receipts.php')
-                    {
+                    function showAlertAndRedirect($message, $url = 'http://slashlaw-new/receipts.php') {
                         echo "<script>
                                     alert('" . json_encode($message) . "'); 
                                     window.location.href = '$url';
@@ -269,8 +268,10 @@
                                 }
                             }
 
-                            if (!empty($receipt_year) && !empty($receipt_month) && 
-                                !isReceiptDateValid($receipt_year, $receipt_month)) {
+                            if (
+                                !empty($receipt_year) && !empty($receipt_month) &&
+                                !isReceiptDateValid($receipt_year, $receipt_month)
+                            ) {
                                 showAlertAndRedirect('Receipt 日期必須為當前日期前後兩個月(不含當前月份)');
                             }
 
@@ -315,7 +316,7 @@
 
                             // Debug 輸出
                             // print_r($dataArray);
-                    
+
                             echo '<button type="button" id="export_list_btn">Export</button>';
                             echo '<select name="lang" id="lang" style="float:right; margin-right:15px;">
                                     <option value="chinese" selected>中文</option>
@@ -379,7 +380,7 @@
 
                             // Debug 輸出
                             // print_r($dataArray);
-                    
+
                             echo '<button type="button" id="export_edit_btn">Export</button>';
                             echo '<button type="button" id="invalid_edit_btn" style="margin-right: 15px;">Invalid</button>';
                             echo '<select name="lang" id="lang" style="float:right; margin-right:15px;">
@@ -424,7 +425,7 @@
 
                         // Debug 輸出
                         // print_r($dataArray);
-                    
+
                         echo '<button type="button" id="export_list_btn">Export</button>';
                         echo '<select name="lang" id="lang" style="float:right; margin-right:15px;">
                                 <option value="chinese" selected>中文</option>
@@ -629,12 +630,12 @@
                                 }
 
                                 $receipt_entity = htmlspecialchars($data['receipt_entity'], ENT_QUOTES);
-                                $note_legal = $data['note_legal'] !== '' 
-                                                ? 'value="' . htmlspecialchars($data['note_legal'], ENT_QUOTES) . '"' 
-                                                : '';
-                                $note_disbs = $data['note_disbs'] !== '' 
-                                                ? 'value="' . htmlspecialchars($data['note_disbs'], ENT_QUOTES) . '"' 
-                                                : '';
+                                $note_legal = $data['note_legal'] !== ''
+                                    ? 'value="' . htmlspecialchars($data['note_legal'], ENT_QUOTES) . '"'
+                                    : '';
+                                $note_disbs = $data['note_disbs'] !== ''
+                                    ? 'value="' . htmlspecialchars($data['note_disbs'], ENT_QUOTES) . '"'
+                                    : '';
                                 $status = $data['status'] === '1' ?
                                     "<td class='text-center'>有效</td>" :
                                     "<td class='text-center' style='color: red;'>作廢</td>";
@@ -689,13 +690,13 @@
 
                         <div style="text-align: center; margin-top: 20px; font-size: 16px;">
                             <label style="margin-right: 30px; font-weight: normal; cursor: pointer;">
-                                <input type="radio" name="change_action" id="keepData" value="keep" checked 
-                                       style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
+                                <input type="radio" name="change_action" id="keepData" value="keep" checked
+                                    style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
                                 保留原編號資料
                             </label>
                             <label style="font-weight: normal; cursor: pointer;">
-                                <input type="radio" name="change_action" id="deleteData" value="delete" 
-                                       style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
+                                <input type="radio" name="change_action" id="deleteData" value="delete"
+                                    style="vertical-align: middle; margin-right: 5px; transform: scale(1.3); cursor: pointer;">
                                 刪除原編號資料
                             </label>
                         </div>
@@ -719,7 +720,7 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             // 處理 Export 函數：僅處理勾選的列，並收集該列的各欄位資料
             async function handleExportForm(event, type) {
                 event.preventDefault();
@@ -736,7 +737,10 @@
                 // 統一下載處理
                 async function downloadFile(url, formData) {
                     try {
-                        const response = await fetch(url, { method: "POST", body: formData });
+                        const response = await fetch(url, {
+                            method: "POST",
+                            body: formData
+                        });
                         const contentType = response.headers.get("Content-Type") || "";
 
                         // 處理 JSON 回應
@@ -752,7 +756,7 @@
                         // 非預期的回應類型
                         const errorText = await response.text();
                         alert(`⚠️ 報表產生失敗，伺服器回應非 PDF。\n\n${errorText}`);
-                        
+
                     } catch (err) {
                         alert(`❌ 發生錯誤：${err.message}`);
                         console.error(err);
@@ -789,12 +793,12 @@
 
                     const filename = decodeURIComponent(match[1].trim());
                     const blob = await response.blob();
-                    
+
                     // 建立下載連結
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
                     link.download = filename;
-                    
+
                     // 觸發下載
                     document.body.appendChild(link);
                     link.click();
@@ -810,18 +814,20 @@
                     checkboxes.forEach(checkbox => {
                         const rowIndex = checkbox.value;
                         const row = checkbox.closest("tr");
-                        const rowData = { index: rowIndex };
+                        const rowData = {
+                            index: rowIndex
+                        };
 
                         // 根據類型取得不同欄位
-                        const fieldNames = type === 'list' 
-                            ? ['party_en_name_bills', 'note_legal', 'note_disbs', 'wht']
-                            : ['receipt_entity', 'note_legal', 'note_disbs', 'payments_id'];
+                        const fieldNames = type === 'list' ?
+                            ['party_en_name_bills', 'note_legal', 'note_disbs', 'wht'] :
+                            ['receipt_entity', 'note_legal', 'note_disbs', 'payments_id'];
 
                         fieldNames.forEach(field => {
                             const element = row.querySelector(
-                                field === 'party_en_name_bills' || field === 'receipt_entity'
-                                        ? `textarea[name="${field}[${rowIndex}]"]`
-                                        : `input[name="${field}[${rowIndex}]"]`
+                                field === 'party_en_name_bills' || field === 'receipt_entity' ?
+                                `textarea[name="${field}[${rowIndex}]"]` :
+                                `input[name="${field}[${rowIndex}]"]`
                             );
                             rowData[field === 'party_en_name_bills' ? 'entity' : field] = element?.value || "";
                         });
@@ -880,18 +886,18 @@
                 // 取得收據號碼的後面數字部分
                 async function fetchReceiptNumber() {
                     let receipt_year, receipt_month;
-                    
+
                     // 從頁面提取日期
                     const h3Element = document.querySelector('.all-heading h3');
-                    
+
                     if (h3Element) {
                         const text = h3Element.textContent;
                         const receiptMatch = text.match(/Receipt\s*:\s*(\d{4})-(\d{2})/);
-                        
+
                         if (receiptMatch) {
                             // 找到日期，使用頁面上的日期
                             receipt_year = receiptMatch[1].slice(-2);
-                            receipt_month = receiptMatch[2]; 
+                            receipt_month = receiptMatch[2];
                         } else {
                             // 找不到日期格式，使用當天日期
                             const today = new Date();
@@ -904,20 +910,24 @@
                         receipt_year = today.getFullYear().toString().slice(-2); // 取後兩位
                         receipt_month = (today.getMonth() + 1).toString().padStart(2, '0'); // 月份補零
                     }
-                    
+
                     // 調用API (使用GET請求)
                     try {
                         const url = `${CONFIG.URLS.RECEIPT_NUM}?receipt_year=${receipt_year}&receipt_month=${receipt_month}`;
                         const res = await fetch(url);
-                        
+
                         if (!res.ok) {
                             throw new Error(`HTTP error! status: ${res.status}`);
                         }
-                        
+
                         const data = await res.json();
                         const receiptNum = Number(data.receiptNum);
-                        
-                        return {receipt_year, receipt_month, receiptNum};
+
+                        return {
+                            receipt_year,
+                            receipt_month,
+                            receiptNum
+                        };
                     } catch (error) {
                         const errorMessage = error.message || '未知錯誤';
                         alert(`API調用失敗: ${errorMessage}`);
@@ -972,12 +982,12 @@
                         formData.append("language", language);
                         formData.append("type", type);
                         formData.append("isMerged", true);
-                        formData.append("indexList", JSON.stringify(indexList)); 
+                        formData.append("indexList", JSON.stringify(indexList));
                         formData.append("uncheckedDisbsData", uncheckedDisbsData);
                         formData.append("ispaid", "true");
                         formData.append("receiptNum", `R${receipt_year}${receipt_month}${receiptNum.toString().padStart(4, '0')}`);
                         if (receipt_date) formData.append("receiptDate", receipt_date);
-                        
+
                         await downloadFile(CONFIG.URLS.PDF, formData);
                     } else {
                         for (let i = 0; i < selectedRowsData.length; i++) {
@@ -1034,7 +1044,7 @@
             // 為 export_list_btn 綁定點擊事件
             let exportListBtn = document.getElementById("export_list_btn");
             if (exportListBtn) {
-                exportListBtn.addEventListener("click", function (e) {
+                exportListBtn.addEventListener("click", function(e) {
                     handleExportForm(e, "list");
                 });
             }
@@ -1042,7 +1052,7 @@
             // 為 export_edit_btn 綁定提交事件
             let exportEditBtn = document.getElementById("export_edit_btn");
             if (exportEditBtn) {
-                exportEditBtn.addEventListener("click", function (e) {
+                exportEditBtn.addEventListener("click", function(e) {
                     handleExportForm(e, "edit");
                 });
             }
@@ -1050,16 +1060,18 @@
             // 為 invalid_edit_btn 綁定提交事件
             let invalidEditBtn = document.getElementById("invalid_edit_btn");
             if (invalidEditBtn) {
-                invalidEditBtn.addEventListener("click", function (e) {
+                invalidEditBtn.addEventListener("click", function(e) {
                     e.preventDefault(); // 防止表單提交
 
                     var selectedData = [];
 
                     // 遍歷所有 row_check_box 的 checkbox
-                    document.querySelectorAll("input[name^='row_check_box']").forEach(function (checkbox) {
+                    document.querySelectorAll("input[name^='row_check_box']").forEach(function(checkbox) {
                         if (checkbox.checked) {
                             var rowIndex = checkbox.value;
-                            selectedData.push({ index: rowIndex });
+                            selectedData.push({
+                                index: rowIndex
+                            });
                         }
                     });
 
@@ -1069,18 +1081,18 @@
                     formData.append("selectedData", JSON.stringify(selectedData));
 
                     fetch("/test_db/receipts_edit_db.php", {
-                        method: "POST",
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        location.reload();
-                    })
-                    .catch(error => {
-                        alert("發生錯誤，請稍後再試！");
-                        console.error("發生錯誤：", error);
-                    });
+                            method: "POST",
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message);
+                            location.reload();
+                        })
+                        .catch(error => {
+                            alert("發生錯誤，請稍後再試！");
+                            console.error("發生錯誤：", error);
+                        });
                 });
             }
         });
@@ -1122,39 +1134,38 @@
                 top: 50,
             }
         })
-        $(document.body).on('hidden.bs.modal', function () {
+        $(document.body).on('hidden.bs.modal', function() {
             $('#myModal').removeData('bs.modal')
         });
 
         //Edit SL: more universal
-        $(document).on('hidden.bs.modal', function (e) {
+        $(document).on('hidden.bs.modal', function(e) {
             $(e.target).removeData('bs.modal');
         });
 
         // ======== 您需要新增的程式碼在這裡 ========
         // 使用 jQuery 的 document ready 函數
         $(document).ready(function() {
-            
+
             // 1. 透過 ID 找到 "Change" 按鈕
             $('#change_submit_btn').on('click', function(event) {
-                
+
                 // 2. 檢查 "刪除" 選項 (ID: deleteData) 是否被勾選
                 if ($('#deleteData').is(':checked')) {
-                    
+
                     // 3. 如果勾選了，跳出確認視窗
                     var confirmed = confirm("您確定要刪除原編號資料嗎？");
-                    
+
                     // 4. 如果使用者按下 "取消" (confirmed 為 false)
                     if (!confirmed) {
                         // 停止點擊事件的預設行為 (即停止表單提交)
-                        event.preventDefault(); 
+                        event.preventDefault();
                     }
                 }
                 // 如果是 "保留" 或使用者按下 "確定"，點擊事件會正常觸發，表單會提交
             });
         });
         // ======== 新增程式碼結束 ========
-
     </script>
 </body>
 

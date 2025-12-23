@@ -45,7 +45,6 @@ try {
         // 取得 session 中對應的資料
         $index = $selectedData['index'];
         $session_data = $_SESSION['dataArray'][$index] ?? null;
-
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') { // create 資料
         $entity = urldecode($_GET['entity'] ?? '');
         $case_num = urldecode($_GET['case_num'] ?? '');
@@ -75,14 +74,14 @@ try {
         $receipt_date = $_POST['receiptDate'] ?? date('Y/n/j');
         $receipt_tax_id = $session_data['receipt_tax_id'];
         $case_num = $session_data['case_num'];
-        $deb_num = $session_data['deb_num'];
+        $deb_num = $session_data['deb_num'] . ($session_data['split_deb_num'] ?? '');
         $note_legal = $selectedData['note_legal'];
         $note_disbs = $selectedData['note_disbs'];
         $wht = (float)str_replace(',', '', $selectedData['wht']);
 
         // 判斷是否為申請單號資料
         $is_split = isset($session_data['split_entity']) && $session_data['split_entity'] !== null;
-   
+
         ### 判斷幣別
         // unpaid 屬於外幣的情況
         $isEnglishCurrency = in_array($session_data['billing_currency'], ['English (USD)', 'English (EUR)']);
@@ -128,7 +127,7 @@ try {
             foreach ($indexList as $i) {
                 // 1. 取得該筆項目所有的代墊明細
                 $disbsDataArray = getReceiptsDetail($is_paid, $_SESSION['dataArray'][$i]['payments_id'], $_SESSION['dataArray'][$i]['deb_num']);
-                
+
                 // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
                 $uncheckedIds = array_column($uncheckedDisbsData[$deb_num] ?? [], 'id');
 
@@ -136,10 +135,10 @@ try {
                 foreach ($disbsDataArray as $disbs_data) {
                     // 如果該明細不在「未勾選」清單中，才進行加總
                     if (!in_array($disbs_data['id'], $uncheckedIds)) {
-                        
+
                         // 根據是否為外幣，取得正確的金額
                         $fee = $isForeign ? (float)($disbs_data['foreign_amount2'] ?? 0) : (float)($disbs_data['ntd_amount'] ?? 0);
-                        
+
                         // 判斷費用類別並累加至總和
                         if ($disbs_data['disb_name'] === 'Official Fee') {
                             $official_fee += $fee;
@@ -149,17 +148,16 @@ try {
                     }
                 }
             }
-            
+
             // 4. 計算合併後的代墊總額
             $disbs = $official_fee + $other_fee;
-
         } else {
             $official_fee = 0;
             $other_fee = 0;
-            
+
             // 1. 取得該筆項目所有的代墊明細
             $disbsDataArray = getReceiptsDetail($is_paid, $session_data['payments_id'], $session_data['deb_num']);
-            
+
             // 2. 取得該筆項目「未勾選」的代墊項目 ID 陣列
             $uncheckedIds = array_column($uncheckedDisbsData[$session_data['deb_num']] ?? [], 'id');
 
@@ -167,10 +165,10 @@ try {
             foreach ($disbsDataArray as $disbs_data) {
                 // 如果該明細不在「未勾選」清單中，才進行加總
                 if (!in_array($disbs_data['id'], $uncheckedIds)) {
-                    
+
                     // 根據是否為外幣，取得正確的金額
                     $fee = $isForeign ? (float)($disbs_data['foreign_amount2'] ?? 0) : (float)($disbs_data['ntd_amount'] ?? 0);
-                    
+
                     // 判斷費用類別並累加
                     if ($disbs_data['disb_name'] === 'Official Fee') {
                         $official_fee += $fee;
@@ -191,7 +189,7 @@ try {
         // 取得欄位資料
         $receipt_num = $session_data['receipt_num'];
         $entity = $selectedData['receipt_entity'];
-        $receipt_date = date('Y/n/j');
+        $receipt_date = $session_data['receipt_date'];
         $receipt_tax_id = $session_data['receipt_tax_id'];
         $case_num = $session_data['case_num'];
         $deb_num = $session_data['deb_num'] . ($session_data['deb_extra'] ?? '');
@@ -211,7 +209,7 @@ try {
 
         foreach ($disbsDataArray as $disbs_data) {
             $fee = $isForeign ? $disbs_data['foreign_amount2'] : $disbs_data['ntd_amount'];
-            
+
             if ($disbs_data['disb_name'] === 'Official Fee') {
                 $official_fee += $fee;
             } else {
@@ -373,7 +371,7 @@ try {
 
     $content = $disbs . "   \n";
     $pdf->MultiCell($w2, 0, $content, 'LR', 'R', false, 1, '', '', true, 0, false, true, 0, 'T', true);
-    
+
     // (4) 代墊類型, note
     $pdf->SetFont('msjh', '', 12);
     $content = "";
@@ -485,4 +483,3 @@ try {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['message' => '❗ 產生報表失敗：' . $e->getMessage()]);
 }
-?>

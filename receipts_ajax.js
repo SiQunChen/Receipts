@@ -1,9 +1,9 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // 初始化分頁
     loadListData();
 
     // 關閉頁面、重整等動作時清除資料
-    window.addEventListener("beforeunload", function() {
+    window.addEventListener("beforeunload", function () {
         localStorage.clear();
     });
 });
@@ -13,11 +13,11 @@ function loadListData() {
     $.ajax({
         url: 'receipts_ajax.php',
         dataType: 'json',
-        success: function(response) {
+        success: function (response) {
             // console.log(response.dataArray);
             updateTable(response.dataArray);
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
             console.error('Error:', error);
         }
     });
@@ -48,7 +48,7 @@ function updateTable(dataArray) {
                 currency = data.currency2;
                 if (data.wht_status === '1') {
                     const amount = Number(data.wht_base) === '1' ? services : total;
-                    wht = amount >= Number(data.wht_model) 
+                    wht = amount >= Number(data.wht_model)
                         ? (amount * 0.1).toFixed(2).toLocaleString()
                         : '0.00';
                 } else {
@@ -109,7 +109,7 @@ function updateTable(dataArray) {
                 if (!is_paid) {
                     if (data.wht_status === '1') {
                         const amount = Number(data.wht_base) === '1' ? services : total;
-                        wht = amount >= Number(data.wht_model) 
+                        wht = amount >= Number(data.wht_model)
                             ? (amount * 0.1).toFixed(2).toLocaleString()
                             : '0.00';
                     } else {
@@ -136,7 +136,7 @@ function updateTable(dataArray) {
 
                     // 從 disbs 和 total 減去未勾選金額
                     disbs -= totalUncheckedValue;
-                    total -= totalUncheckedValue;    
+                    total -= totalUncheckedValue;
                 }
 
                 // 計算 show_as_legal_services 和 show_as_legal_disbs
@@ -164,7 +164,7 @@ function updateTable(dataArray) {
             // 顯示部分銷帳後的 disbs
             redColor = data.disbs_sum != null ? "style='color: red;'" : "";
         }
-        
+
         // 生成表格行
         tbody += `
             <tr>
@@ -183,12 +183,12 @@ function updateTable(dataArray) {
                 <td class='text-center'>${deb_num}</td>
                 <td class='text-right' style='max-width: 150px'>
                     <span ${redColor}>${services}</span>
-                    ${show_as_legal_services != services ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_services})</span>` : ''}
+                    ${show_as_legal_services && show_as_legal_services != services ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_services})</span>` : ''}
                     <input type='text' name='note_legal[${index}]' style='width: calc(100%)'>
                 </td>
                 <td class='text-right' style='max-width: 150px'>
                     <span ${redColor}>${disbs}</span>
-                    ${show_as_legal_disbs != disbs ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_disbs})</span>` : ''}
+                    ${show_as_legal_disbs && show_as_legal_disbs != disbs ? `<br><span style='color: red; font-weight: bold; font-size: 12px;'>(${show_as_legal_disbs})</span>` : ''}
                     <input type='text' name='note_disbs[${index}]' style='width: calc(100%)'>
                 </td>
                 <td class='text-right'>

@@ -6,12 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once("db.ini");
 
-function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $initial, $bills_year, $bills_month, $payment_method, $payment_start, $payment_end, $receipt_year, $receipt_month, $application_num)
-{
+function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $initial, $bills_year, $bills_month, $payment_method, $payment_start, $payment_end, $receipt_year, $receipt_month, $application_num) {
     // 資料庫連接
     $dblink = @pg_connect(DB_CONNECT);
     if (!$dblink) {
-        return("無法連接到資料庫");
+        return ("無法連接到資料庫");
     }
 
     // 初始化條件陣列和參數陣列
@@ -31,6 +30,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                             SUM(legal_services) AS services_sum,
                             SUM(foreign_services) AS foreign_services_sum
                         FROM receipt
+                        WHERE status='1' 
                         GROUP BY deb_num
                     ), 
                     show_as_legal AS ( 
@@ -78,7 +78,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                                         AND (receipt_sec_deb.split_disbs = receipt_sum.disbs_sum OR receipt_sec_deb.split_disbs = receipt_sum.foreign_disbs_sum)
                                         AND (receipt_sec_deb.split_legal_services = receipt_sum.services_sum OR receipt_sec_deb.split_legal_services = receipt_sum.foreign_services_sum)
                                         )
-                        ORDER BY sent";
+                        ORDER BY deb_num, split_deb_num";
         } else {
             // case_num 條件
             if ($case_num !== '') {
@@ -117,7 +117,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                     $sent_start = date('Y-m-d');
                     $sent_end = date('Y-m-d');
                 }
-                
+
                 $conditions[] = "sent >= $" . $param_index . " AND sent <= $" . ($param_index + 1);
                 $params[] = $sent_start;
                 $params[] = $sent_end;
@@ -132,7 +132,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
             }
 
             // 計算 rec_date 範圍
-            if ($is_paid === 'paid' && $payment_start !== '') {     
+            if ($is_paid === 'paid' && $payment_start !== '') {
                 $conditions[] = "rec_date >= $" . $param_index . " AND rec_date <= $" . ($param_index + 1);
                 $params[] = $payment_start;
                 $params[] = $payment_end;
@@ -237,7 +237,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                                     )
                                 )
                         )
-                        ORDER BY sent";
+                        ORDER BY deb_num";
             } elseif ($is_paid === 'paid') {
                 $sql = "WITH invalid_deb_nums AS (
                             SELECT DISTINCT deb_num
@@ -311,7 +311,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         )      
                         ORDER BY deb_num";
             } else {
-                return("無效的 is_paid 值");
+                return ("無效的 is_paid 值");
             }
         }
     } elseif ($type === 'edit') {
@@ -340,13 +340,13 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
             if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $receipt_start = sprintf("%s-%s-01", $receipt_year, $receipt_month);
                 $receipt_end = sprintf("%s-%s-%s", $receipt_year, $receipt_month, date("t", mktime(0, 0, 0, $receipt_month, 1, $receipt_year)));
-            } 
+            }
             $conditions[] = "receipt.receipt_date >= $" . $param_index . " AND receipt.receipt_date <= $" . ($param_index + 1);
             $params[] = $receipt_start;
             $params[] = $receipt_end;
             $param_index += 2;
         } else {
-            return("請輸入 Receipt Month");
+            return ("請輸入 Receipt Month");
         }
 
         // 組合條件
@@ -361,6 +361,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                         receipt.deb_num,
                         receipt.bills_sent,
                         receipt.receipt_num,
+                        receipt.receipt_date,
                         receipt.legal_services,
                         receipt.disbs,
                         receipt.total,
@@ -394,6 +395,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
                     MAX(CASE WHEN rn = 1 THEN deb_num END) AS deb_num,
                     MAX(CASE WHEN rn = 1 THEN bills_sent END) AS bills_sent,
                     receipt_num,
+                    MAX(CASE WHEN rn = 1 THEN receipt_date END) AS receipt_date,
                     MAX(CASE WHEN rn = 1 THEN note_legal END) AS note_legal,
                     MAX(CASE WHEN rn = 1 THEN currency END) AS currency,
                     MAX(CASE WHEN rn = 1 THEN note_disbs END) AS note_disbs,
@@ -423,7 +425,7 @@ function getReceipts($type, $case_num, $match_or_like, $invoice, $is_paid, $init
     $result = pg_query_params($dblink, $sql, $params);
 
     if (!$result) {
-        return("查詢失敗: " . pg_last_error($dblink));
+        return ("查詢失敗: " . pg_last_error($dblink));
     }
 
     // 取得結果
@@ -478,7 +480,6 @@ function getReceiptsDetail($is_paid, $payment_id, $deb_num, $receipt_num = null)
                     )
                     ORDER BY d.show_as_legal_service_flag;";
             $params = [$deb_num, $payment_id];
-
         } elseif ($is_paid === 'false') {
             $sql = "SELECT
                         d.id,
@@ -603,12 +604,12 @@ function getReceiptsDetail($is_paid, $payment_id, $deb_num, $receipt_num = null)
         // 查詢詳細資料
         foreach ($disbs_array as $disbs) {
             $result = pg_query_params($dblink, $sql, [$disbs[$id_field]]);
-            
+
             if (!$result) {
                 pg_close($dblink);
                 die("查詢失敗: " . pg_last_error($dblink));
             }
-            
+
             while ($row = pg_fetch_assoc($result)) {
                 $details[] = $row;
             }
@@ -618,4 +619,3 @@ function getReceiptsDetail($is_paid, $payment_id, $deb_num, $receipt_num = null)
     pg_close($dblink); // 關閉資料庫連接
     return $details;
 }
-?>
